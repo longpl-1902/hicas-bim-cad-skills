@@ -99,6 +99,7 @@ files hasn't changed the facts). Otherwise determine and save:
   "automationBridge": "e.g. MCP server '<your-addin-mcp>' (list_revit_instances, call_tool) | none",
   "testBuilds": { "2024": "src/X/bin/Debug/R2024/X.addin (Revit manifest) | path to X.dll (AutoCAD)", "2026": "src/X/bin/Debug/R2026/X.addin" },
   "testLog": "optional: log file the add-in's TestProbe writes, default %LOCALAPPDATA%/AddinTest/atest.log",
+  "projectLog": "optional: the add-in's own application log (read-only supplementary evidence for b-desktop-test)",
   "testFixtures": ["tests/fixtures/", "D:/TestModels/Hawee/", "\\\\server\\qa\\models\\basic.rvt"] | "none",
   "desktopTest": "computer-use (Claude runs the B/Critical scripts on the desktop, skill b-desktop-test) | none",
   "automationRule": "e.g. MCP-FEAT-001: new capability needs a tool | none",
