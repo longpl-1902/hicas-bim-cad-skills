@@ -56,8 +56,8 @@ sequenceDiagram
 Nếu không áp dụng → "N/A – <lý do>" + người phải duyệt theo rule dự án.>
 
 ## 8. Chiến lược kiểm chứng (bám test-contract.md, không đổi nghĩa case)
-| Case | Cấp | Cách kiểm | Test / script | Oracle (nguồn) |
-|---|---|---|---|---|
+| Case | Cấp | Cách kiểm | Test / script | Oracle (nguồn) | Kênh B (log / file / ui) |
+|---|---|---|---|---|---|
 - Logic thuần tách khỏi host để nâng case từ B lên A: <đề xuất hoặc "không">
 
 ## 9. Phương án đã loại

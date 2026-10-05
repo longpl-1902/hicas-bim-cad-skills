@@ -75,7 +75,7 @@ Thêm một kiểm tra riêng cho kiểm thử: với mỗi yêu cầu, tự h�
 Nếu còn điểm loại 3, hỏi user trước khi hoàn thiện. Tài liệu này sẽ giao cho agent làm thật; điền bừa vào chỗ trống là rủi ro lớn nhất.
 
 - Gom thành một lượt hỏi, đánh số, mỗi câu ngắn và cụ thể; nếu dùng được công cụ hỏi có lựa chọn thì đưa phương án kèm đề xuất mặc định.
-- Chỉ hỏi những gì thực sự chặn việc viết: hành vi đúng mong đợi, phạm vi, bước tái hiện, **giá trị kỳ vọng cụ thể và nguồn của nó**, dữ liệu/file mẫu để test (với case cấp B: phiên bản Revit/AutoCAD cần test và model/DWG test cụ thể, để có thể chạy tự động bằng HicasTest), ai là người xác nhận các case cần môi trường thật. Không hỏi những chi tiết agent tự tìm được trong code.
+- Chỉ hỏi những gì thực sự chặn việc viết: hành vi đúng mong đợi, phạm vi, bước tái hiện, **giá trị kỳ vọng cụ thể và nguồn của nó**, dữ liệu/file mẫu để test (với case cấp B: phiên bản Revit/AutoCAD cần test và model/DWG test cụ thể, để Claude chạy được kịch bản test tay trên đúng host và model), ai là người xác nhận các case cần môi trường thật. Không hỏi những chi tiết agent tự tìm được trong code.
 - Nếu ticket đã đủ, bỏ qua và nói rõ là ticket đã đủ thông tin.
 - Nếu không có người trả lời (chạy không giám sát): chọn hướng an toàn nhất, ghi vào Giả định, và đánh dấu mọi case phụ thuộc giả định đó là "Chờ người xác nhận".
 

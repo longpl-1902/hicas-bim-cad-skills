@@ -7,7 +7,7 @@
 .DESCRIPTION
     Script này nhận vào đường dẫn tới file .sln của dự án add-in, tự động xác định thư mục gốc dự án (Git root),
     và sao chép toàn bộ bộ kỹ năng (skills), sinh các rules kiểm thử (Maker != Checker, C# .NET 4.8 guidelines),
-    thiết lập MCP server (Redmine, HicasTest), cùng thư mục quy trình (.harness) để sẵn sàng sử dụng
+    thiết lập MCP server (Redmine), cùng thư mục quy trình (.harness) để sẵn sàng sử dụng
     trên Antigravity IDE với Model Gemini.
 
 .PARAMETER SlnPath
@@ -248,7 +248,7 @@ Ap dung cho moi workflow phat trien Add-in Revit/AutoCAD:
 1. **Khong tu danh gia**: Implementer (nguoi viet code) tuyet doi khong duoc tu danh dau "Pass" cho code hoac test case cua minh.
 2. **Hop dong kiem thu la dong bang (Frozen Test Contract)**: Khong duoc sua doi, xoa bo hoac ha thap tieu chi cua cac test case da de ra trong `test-contract.md`.
 3. **Bang chung may (Level-A)**: Chi duoc danh dau Pass khi co bang chung lenh thuc te (output lenh build, dotnet test, logs) dinh kem voi ma loi exit code 0.
-4. **Bang chung thuc nghiem (Level-B & Critical)**: Ket qua may (HicasTest MATCH) chi la bang chung ho tro, luon yeu cau xac nhan tu nguoi dung (Human in the loop), khong bao gio tu dong ghi Pass.
+4. **Bang chung thuc nghiem (Level-B & Critical)**: Ket qua may (log, file, anh do Claude thu) chi la bang chung ho tro, luon yeu cau xac nhan tu nguoi dung (Human in the loop), khong bao gio tu dong ghi Pass.
 5. **Gon gang & Chuyen nghiep**: Trao doi voi lap trinh vien bang tieng Viet; code, identifiers, commit message va code comments bang tieng Anh.
 '@
 Set-Content -LiteralPath $MakerCheckerRulePath -Value $MakerCheckerContent -Encoding UTF8
@@ -380,10 +380,6 @@ $McpTemplate = [ordered]@{
                 REDMINE_READ_ONLY = "1"
             }
         }
-        "hicas-test" = [ordered]@{
-            command = "powershell"
-            args = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "install.ps1", "-RegisterMcp")
-        }
     }
 }
 
@@ -452,7 +448,8 @@ if (-not (Test-Path -LiteralPath $AddinStoryJsonPath)) {
     $AddinStoryConfig = @{
         solution = $RelativeSln
         featuresDir = ".harness/features"
-        automationBridge = "hicas-test"
+        automationBridge = "none"
+        desktopTest = "none"
         testBuilds = @()
         testFixtures = @()
     }

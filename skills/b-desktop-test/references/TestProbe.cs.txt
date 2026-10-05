@@ -1,0 +1,98 @@
+// Reference implementation of the test probe (copy into the add-in's L0 Platform Core, adapt the namespace).
+// C# 7.3 / .NET Framework 4.8, no Autodesk.* reference. It is the ONLY place allowed to write "[ATEST]" lines.
+// It writes nothing unless the flag file exists, so production users are unaffected.
+//
+// Flag file (created by scripts/atest.mjs start):  %LOCALAPPDATA%\AddinTest\atest.json
+//   { "run": "7f3a21", "story": "42100", "log": "C:\\...\\atest.log" }
+//
+// Usage from feature code (values must be READ BACK from the model after the transaction, not the values you meant to set):
+//   TestProbe.Begin("AC-03");
+//   TestProbe.Value("AC-03", "count", tags.Count);
+//   TestProbe.Value("AC-03", "firstTagText", firstTag.TagText);
+//   TestProbe.Done("AC-03");            // or TestProbe.Error("AC-03", ex.Message)
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Text;
+
+namespace Company.Platform.Core
+{
+    /// <summary>Writes machine-readable test evidence lines when a test run is active; no-op otherwise.</summary>
+    public static class TestProbe
+    {
+        private static readonly object Gate = new object();
+        private static string _cachedFlagText;
+        private static DateTime _cachedStamp;
+        private static string _run, _story, _log;
+
+        /// <summary>True when a test run flag file is present.</summary>
+        public static bool Active { get { return Load(); } }
+
+        /// <summary>Marks the start of a case.</summary>
+        public static void Begin(string caseId) { Write(caseId, "BEGIN", null); }
+
+        /// <summary>Marks the end of a case (always call it, also on early return).</summary>
+        public static void Done(string caseId) { Write(caseId, "DONE", null); }
+
+        /// <summary>Marks a failed case. The message must not contain customer data.</summary>
+        public static void Error(string caseId, string message) { Write(caseId, "ERROR", new[] { new KeyValuePair<string, string>("msg", message) }); }
+
+        /// <summary>Records one value (numbers use invariant culture; unit belongs in the key or a second Value call).</summary>
+        public static void Value(string caseId, string key, object value)
+        {
+            string text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+            Write(caseId, null, new[] { new KeyValuePair<string, string>(key, text) });
+        }
+
+        private static bool Load()
+        {
+            try
+            {
+                string flag = Path.Combine(Environment.GetEnvironmentVariable("LOCALAPPDATA") ?? string.Empty, "AddinTest", "atest.json");
+                if (!File.Exists(flag)) { _run = null; return false; }
+                DateTime stamp = File.GetLastWriteTimeUtc(flag);
+                if (_run != null && stamp == _cachedStamp) return true;
+                string text = File.ReadAllText(flag, Encoding.UTF8);
+                _run = Extract(text, "run"); _story = Extract(text, "story"); _log = Extract(text, "log");
+                _cachedFlagText = text; _cachedStamp = stamp;
+                return !string.IsNullOrEmpty(_run) && !string.IsNullOrEmpty(_log);
+            }
+            catch (IOException) { return false; }
+            catch (UnauthorizedAccessException) { return false; }
+        }
+
+        // Tiny extractor so the helper needs no JSON dependency; the flag file is written by our own script.
+        private static string Extract(string json, string key)
+        {
+            string needle = "\"" + key + "\"";
+            int i = json.IndexOf(needle, StringComparison.Ordinal);
+            if (i < 0) return null;
+            i = json.IndexOf(':', i); if (i < 0) return null;
+            i = json.IndexOf('"', i); if (i < 0) return null;
+            var sb = new StringBuilder();
+            for (i++; i < json.Length && json[i] != '"'; i++)
+            {
+                if (json[i] == '\\' && i + 1 < json.Length) i++;
+                sb.Append(json[i]);
+            }
+            return sb.ToString();
+        }
+
+        private static void Write(string caseId, string marker, IEnumerable<KeyValuePair<string, string>> values)
+        {
+            if (!Load() || string.IsNullOrEmpty(caseId)) return;
+            var line = new StringBuilder("[ATEST] run=").Append(_run).Append(" story=").Append(_story).Append(" case=").Append(caseId);
+            if (marker != null) line.Append(' ').Append(marker);
+            if (values != null)
+                foreach (var kv in values)
+                    line.Append(' ').Append(kv.Key).Append('=').Append((kv.Value ?? string.Empty).Replace("\r", " ").Replace("\n", " "));
+            lock (Gate)
+            {
+                try { File.AppendAllText(_log, DateTime.Now.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture) + " " + line + Environment.NewLine, Encoding.UTF8); }
+                catch (IOException) { /* evidence is best effort; never break the add-in */ }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+    }
+}

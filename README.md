@@ -20,19 +20,22 @@ Chi tiết các phase của `addin-story`: [`docs/flow-story.png`](docs/flow-sto
 | [`addin-batch`](skills/addin-batch/SKILL.md) | Điều phối nhiều ticket: gom Task/Implement/Bug theo US, lập kế hoạch, kiểm xung đột, 1 lượt duyệt, chạy mỗi US trong git worktree riêng, hàng đợi test level B và MR | `/hicas-bimcad:addin-batch plan` |
 | [`addin-story`](skills/addin-story/SKILL.md) | Team-lead playbook cho 1 ticket/US: test-first, maker ≠ checker, evaluator độc lập | `/hicas-bimcad:addin-story <file.md> [auto\|resume]` |
 | [`qa-test-session`](skills/qa-test-session/SKILL.md) | QA mô tả bằng lời, Claude điều khiển Revit/AutoCAD từng bước, chụp ảnh mỗi bước, xuất báo cáo | Tự kích hoạt khi QA nhờ test một tính năng, hoặc `/hicas-bimcad:qa-test-session` |
-| [`b-desktop-test`](skills/b-desktop-test/SKILL.md) | Sau khi story code + unit test xong, Claude **tự lấy quyền điều khiển máy** (computer-use) chạy các kịch bản test tay B / Critical trong `qa-handover.md` trên bản copy fixture, chụp ảnh từng bước, ghi bằng chứng. Chỉ điều khiển Revit/AutoCAD, dừng ở màn đăng nhập/license/hộp thoại lạ, không bao giờ ghi Pass | Từ addin-story Phase 6 / addin-batch `finish` khi `desktopTest` = `computer-use`, hoặc `/hicas-bimcad:b-desktop-test` |
+| [`b-desktop-test`](skills/b-desktop-test/SKILL.md) | Sau khi story code + unit test xong, Claude **tự lấy quyền điều khiển máy** (computer-use) chạy các kịch bản test tay B / Critical trong `qa-handover.md` trên bản copy fixture. Case logic đọc bằng chứng từ log có tiền tố `[ATEST]` (theo mã run) hoặc file xuất ra, **không chụp màn hình**; chỉ case giao diện mới chụp ảnh cửa sổ host. Chỉ điều khiển Revit/AutoCAD, chỉ chọn `Load Once` ở hộp thoại tin cậy add-in, dừng ở màn đăng nhập/license/hộp thoại lạ, không bao giờ ghi Pass | Từ addin-story Phase 6 / addin-batch `finish` khi `desktopTest` = `computer-use`, hoặc `/hicas-bimcad:b-desktop-test` |
 
 Subagent đi kèm (`hicas-bimcad:<tên>`): `addin-scout`, `addin-implementer`, `addin-helper-writer`,
 `addin-wpf-ui`, `addin-reviewer`, `explorer`, `test-writer`, `architect-reviewer`, `evaluator`.
 
 MCP: plugin **không tự cài** server Redmine; cần một MCP server tên `redmine` (`mcp-redmine`). Hiện lấy từ plugin `harness-redmine`. Khi bỏ plugin đó, dùng cấu hình mẫu [`extras/redmine.mcp.json`](extras/redmine.mcp.json) (chỉ đọc mặc định, đọc biến môi trường).
 
-MCP cho test tự động (tuỳ chọn): `qa-test-session` và `b-desktop-test` cần tool
-[HicasTest](https://github.com/longpl-1902/hicas-bimcad-test-tool) cài trên máy có Revit/AutoCAD, với MCP server tên
-`hicas-test`. Cách nhanh nhất: chạy `install.ps1 -RegisterMcp` trong gói HicasTest; hoặc dùng mẫu
-[`extras/hicas-test.mcp.json`](extras/hicas-test.mcp.json). Trong repo add-in, đặt `automationBridge: "hicas-test"`,
-`testBuilds`, `testFixtures` (một hoặc nhiều thư mục/file, ổ bất kỳ hoặc ổ mạng; hoặc chỉ định file khi chạy) trong `.harness/addin-story.json`. Kết quả của tool chỉ là bằng chứng máy — case cấp B
-vẫn cần người xác nhận.
+Test cấp B bằng `b-desktop-test` (tuỳ chọn, không cần tool nào ngoài Node.js + PowerShell): trong repo add-in đặt
+`desktopTest: "computer-use"`, `testBuilds` (năm → file `.addin` của Revit hoặc `.dll` cho AutoCAD) và `testFixtures`
+(một hoặc nhiều thư mục/file, ổ bất kỳ hoặc ổ mạng; hoặc chỉ định file khi chạy) trong `.harness/addin-story.json`.
+Add-in cần helper `TestProbe` (mẫu: [`skills/b-desktop-test/references/TestProbe.cs.txt`](skills/b-desktop-test/references/TestProbe.cs.txt))
+để ghi các dòng `[ATEST] run=… case=… key=value`; `addin-story` tự thêm helper này khi có case dùng kênh `log`.
+Kết quả của Claude chỉ là bằng chứng máy — case cấp B vẫn cần người xác nhận.
+
+`qa-test-session` vẫn dùng công cụ [HicasTest](https://github.com/longpl-1902/hicas-bimcad-test-tool) (MCP server `hicas-test`,
+mẫu [`extras/hicas-test.mcp.json`](extras/hicas-test.mcp.json)); các skill còn lại không cần nó.
 
 ## Cài đặt
 

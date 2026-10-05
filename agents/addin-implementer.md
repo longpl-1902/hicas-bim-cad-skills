@@ -49,6 +49,10 @@ inside an agent team. The team lead (Opus) designed the work; you implement your
 - Adding cases is fine (mark `[Bổ sung]`); changing/removing one = "Đề xuất thay đổi test" in your report.
 - After implementing, run the same commands and save `<case>-after.txt`. Level-B cases: never Pass — write
   "Chờ xác nhận" + the exact manual steps and the evidence a human must capture.
+- **Test probe (only for B cases with `Kênh: log`):** report the case through the existing `TestProbe` helper in L0
+  (`Begin` / `Value` / `Done` / `Error`) with values **read back from the model after the transaction**, not the
+  values you meant to set. Never write `[ATEST]` lines or add your own logging with that tag; no customer data or
+  secrets in values; the helper is silent without the test flag. No helper yet → ask `team-lead` (T0 adds it).
 
 ## Delegating to Haiku (addin-helper-writer)
 Delegate only when all are true: the function is pure or nearly pure (math, geometry on DTOs,

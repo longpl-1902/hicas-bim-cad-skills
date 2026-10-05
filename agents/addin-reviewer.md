@@ -45,6 +45,8 @@ Check, in this order:
 7. **Tests vs contract** — each level-A case has a test named after it asserting the contract value (unit/tolerance);
    no weakened/skipped/deleted tests, no expected values edited to match output, no mock of the unit under test,
    no swallowed exceptions. Level-B cases have manual steps, not fake passes. Domain/Application logic covered with fakes.
+   `[ATEST]` lines are written only by the shared `TestProbe` helper, behind the test flag, with values read back
+   from the model (a stray `[ATEST]` / log call with that tag in feature code = High).
 
 Report (to `team-lead` when working as a teammate):
 ```

@@ -183,11 +183,11 @@ A lane whose `qa-handover.md` exists → state `b-test`, append it to `b-queue.m
 ## Level-B queue (`b-queue.md`)
 Human confirmation of B / [Critical] cases happens **once, at the end of the batch, on the integration build**
 (`finish`), not lane by lane — fewer host restarts and the cases are checked on the code that will be merged.
-With `desktopTest: computer-use`, `finish` first runs `b-desktop-test` (one lane after another, lanes with
-MISMATCH first, each lane's cases in one host session; cross-lane and [Critical] cases once on the integration
+With `desktopTest: computer-use`, `finish` first runs `b-desktop-test` (one lane after another,
+each lane's cases in one host session; cross-lane and [Critical] cases once on the integration
 build), so the user confirms Claude's evidence instead of running every script by hand. Never in parallel: there
 is one desktop.
-Without `hicas-test`, the queue only lists what the user will test at the end. If the user asks to test a lane
+Without `desktopTest`, the queue only lists what the user will test at the end. If the user asks to test a lane
 earlier, tell them exactly: the worktree path, the DLL to load (`<worktree>/<project>/bin/Debug/…dll`, via Add-in
 Manager or the project's usual dev load method — never overwrite an installed product folder without asking), the
 model/DWG, and the lane's `qa-handover.md` scripts. One lane per host process.

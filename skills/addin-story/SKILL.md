@@ -96,8 +96,9 @@ files hasn't changed the facts). Otherwise determine and save:
   "build": ["msbuild X.sln /p:Configuration=Debug /m /v:m", "msbuild X_R2022.sln ..."],
   "test": "vstest.console ... | dotnet test ...", "testLimits": "e.g. XYZ not constructible outside host",
   "twinProjects": "rule: new .cs → both X.csproj and X_R2022.csproj",
-  "automationBridge": "hicas-test (HicasTest: list_hosts, run_test_case, qa_session_*) | e.g. MCP server '<your-addin-mcp>' (list_revit_instances, call_tool) | none",
-  "testBuilds": { "2024": "src/X/bin/Debug/R2024/X.addin", "2026": "src/X/bin/Debug/R2026/X.addin" },
+  "automationBridge": "e.g. MCP server '<your-addin-mcp>' (list_revit_instances, call_tool) | none",
+  "testBuilds": { "2024": "src/X/bin/Debug/R2024/X.addin (Revit manifest) | path to X.dll (AutoCAD)", "2026": "src/X/bin/Debug/R2026/X.addin" },
+  "testLog": "optional: log file the add-in's TestProbe writes, default %LOCALAPPDATA%/AddinTest/atest.log",
   "testFixtures": ["tests/fixtures/", "D:/TestModels/Hawee/", "\\\\server\\qa\\models\\basic.rvt"] | "none",
   "desktopTest": "computer-use (Claude runs the B/Critical scripts on the desktop, skill b-desktop-test) | none",
   "automationRule": "e.g. MCP-FEAT-001: new capability needs a tool | none",
@@ -113,8 +114,8 @@ files hasn't changed the facts). Otherwise determine and save:
   1. a file under a `testFixtures` entry — a string or a list of folders/files, any drive or UNC path; or
   2. a file the user names in the conversation for this run ("test bằng D:\Models\toa-A.rvt"), after asking once:
      "Xác nhận `<path>` là model dùng để test được (không phải bản làm việc của khách hàng)?".
-  Never pick a model outside these, never browse folders looking for one. Always open a **copy** (HicasTest copies
-  before opening), never save over or next to the original. Record the source path and SHA-256
+  Never pick a model outside these, never browse folders looking for one. Always open a **copy** (b-desktop-test copies
+  it before opening), never save over or next to the original. Record the source path and SHA-256
   (`Get-FileHash -Algorithm SHA256`) in the evidence. A script's fixture missing from both → the case is
   `chưa chạy được (thiếu fixture)`; ask the user for a resource instead of substituting one.
 
@@ -184,7 +185,9 @@ eval verdict, branch proposal. Ask with AskUserQuestion: **Duyệt** / **Sửa (
 
 ## Phase 3 — Interfaces (T0)
 Write shared interfaces/DTOs/enums yourself (reuse first, XML doc). Add every new file to **all** twin project
-files. Run every build command from Step 0. Must pass before Phase 4.
+files. **Test probe:** if any B case has `Kênh: log` and the L0 Platform Core has no `TestProbe` yet, add it from
+`<b-desktop-test skill dir>/references/TestProbe.cs.txt` (adapt the namespace; it is the only code allowed to write
+`[ATEST]` lines). Run every build command from Step 0. Must pass before Phase 4.
 
 ## Phase 4 — Test-first implementation (per task, in dependency order)
 1. **Tests first** — from `test-contract.md` oracles, never from running new code; run them and save
@@ -243,8 +246,8 @@ files. Run every build command from Step 0. Must pass before Phase 4.
    - A bridge (an add-in's own MCP) and the user has a **test/golden** model or DWG open → use **read-only**
      tools to dump the values a B case needs into `evidence/T<n>/<case>-host.txt`. WRITE tools only on a test
      model with preview/dry-run and the user's OK.
-   The case stays "Chờ xác nhận — có bằng chứng máy" at best; a human still confirms. Tool verdicts
-   (`MATCH/MISMATCH/NOT-RUN/ERROR`) are never written as Pass. Never touch customer models without explicit permission.
+   The case stays "Chờ xác nhận — có bằng chứng máy" at best; a human still confirms. Machine results are never
+   written as Pass. Never touch customer models without explicit permission.
 
 ## Phase 6 — Integrate & hand over
 1. Project-file entries in all twins, command/ribbon/manifest registration (`.addin` / `PackageContents.xml`).
@@ -253,7 +256,8 @@ files. Run every build command from Step 0. Must pass before Phase 4.
 4. Update `.harness/project-map.md` Reuse catalog with new/extended L0/L1/shared-Domain members.
 5. `F/qa-handover.md` from template: per-case table (writer format), step-by-step scripts for every B / Critical
    case (model/DWG, button/command, inputs, expected value + unit + tolerance + source, evidence to capture),
-   Redmine comment **draft**. Knowledge worth keeping → propose a known-issue entry (text only).
+   Redmine comment **draft**. Give every B script a `Kênh:` (`log` for logic/numbers, `file` for exports, `ui` only
+   for layout/text/dialogs) and, for `log`, the expected `[ATEST]` lines. Knowledge worth keeping → propose a known-issue entry (text only).
    `desktopTest` is `computer-use` and not in an addin-batch lane → after the full build + tests pass, run the
    `b-desktop-test` skill for this story's B / Critical scripts (it asks the user once before taking the desktop).
    In a lane, leave it to addin-batch (one desktop for all lanes).
@@ -270,5 +274,5 @@ files. Run every build command from Step 0. Must pass before Phase 4.
 | 1 | Phase 1 (only if conflicts) | Answer ≤ 5 closed questions |
 | 2 | Gate (skipped for low risk with `auto`) | Approve plan + branch |
 | 3 | Phase 5 (only after 3 FAILs) | Decide: change design / ticket / accept |
-| 4 | Handover | Run level-B / Critical scripts (blind, before reading machine reports), then ask for commit. With `desktopTest: computer-use`: allow Claude to take the desktop once, then confirm its evidence (visual items, [Critical]) |
+| 4 | Handover | Run level-B / Critical scripts (blind, before reading Claude's evidence), then ask for commit. With `desktopTest: computer-use`: allow Claude to take the desktop once, then confirm its evidence (visual items, [Critical]) |
 Everything else (lint, scan, design check, test-first, build/test, review, evaluation, handover docs) is automatic.

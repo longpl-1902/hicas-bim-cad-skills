@@ -24,8 +24,10 @@ Bạn là **người đánh giá độc lập**. Bạn không viết ra sản ph
 3. Kiểm tra dấu hiệu lách: test bị xoá/skip, assertion yếu (`NotNull` thay cho giá trị cụ thể), `catch` nuốt lỗi, hard-code giá trị để khớp test, cảnh báo analyzer bị tắt.
 4. Suy nghĩ như tester: liệt kê edge case của AC (rỗng, null, trùng, quyền, lỗi I/O…) chưa có test.
 5. Phạm vi: có thay đổi ngoài task không? Có đúng design.md không?
-6. Case cấp B / [Critical]: `MATCH` của HicasTest chỉ là bằng chứng máy, **không phải Pass**. Case cấp B bị ghi Pass
-   chỉ dựa trên kết quả của tool (không có người xác nhận) → tiêu chí đó chấm 0.
+6. Case cấp B / [Critical]: log, file hay ảnh do máy thu chỉ là bằng chứng, **không phải Pass**. Case cấp B bị ghi Pass
+   chỉ dựa trên kết quả của máy (không có người xác nhận) → tiêu chí đó chấm 0.
+7. Dòng `[ATEST]` (test probe): chỉ được ghi trong một helper dùng chung và phía sau cờ test; rải `[ATEST]`/`Console`
+   ở code tính năng, hoặc ghi giá trị định đặt thay vì giá trị đọc lại từ model → tiêu chí quy tắc dự án chấm 0.
 
 ## Khi chấm tài liệu (readiness.md, design.md)
 Đối chiếu với `us.md`: AC nào bị bỏ sót, giả định nào đang được đối xử như sự thật, rủi ro nào chưa có cách xử lý, chỗ nào mơ hồ tới mức 2 dev sẽ làm ra 2 thứ khác nhau.

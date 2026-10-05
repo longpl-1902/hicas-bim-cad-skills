@@ -25,7 +25,9 @@ updated: <YYYY-MM-DD>
 3. Kỳ vọng: <giá trị + đơn vị + dung sai> (nguồn: …)
 4. Bằng chứng cần thu: <ảnh / bảng dump / file log + đường dẫn lưu>
 5. Ghi kết quả: Pass / Fail + người + ngày
-6. Báo cáo máy: <đường dẫn report, hoặc "chưa chạy">
+6. Kênh bằng chứng: `log` (logic/số liệu) | `file` (file xuất ra) | `ui` (giao diện — chỉ kênh này chụp ảnh)
+7. Dòng log mong đợi (kênh `log`): `[ATEST] case=AC-xx <key>=<giá trị> …` — giá trị lấy từ hợp đồng, không lấy từ log
+8. Bằng chứng máy: <đường dẫn log/file/ảnh, hoặc "chưa chạy">
 
 ## Thay đổi theo yêu cầu
 | R | File | Nội dung |
