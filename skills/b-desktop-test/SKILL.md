@@ -47,13 +47,20 @@ file exists, so production users are unaffected. Reference implementation: `refe
    security / trusted paths, Add-in Manager *install*, Collaborate / ACC / BIM 360 / Docs, or publish/upload window.
    Never type a password, key or token. Never change system variables (FILEDIA, SECURELOAD, LOGFILEON, ...).
    **Add-in trust prompt:** the only allowed answer is `Load Once` / `Load` — never `Always Load`, never add a trusted path.
-4. **Script only:** do the steps of the case's script, in order. A dialog or prompt the script does not mention →
-   `win-dialogs.ps1` (and a screenshot if still unclear), stop the case, ask. Do not explore other commands or "fix"
-   the model to make a step work.
+4. **Script only:** do the steps of the case's script, in order. A dialog the script does not mention:
+   - Its title is in `knownDialogs` of `.harness/addin-story.json` (title → the one button/option to choose, decided
+     by the user once, e.g. `"Missing SHX Files": "Ignore the missing SHX files and continue"`) → choose exactly that,
+     never tick "always / don't show again", note it in the evidence, continue. No human needed.
+   - Anything else → `win-dialogs.ps1` (and a screenshot if still unclear), stop the case, and in the report propose
+     the dialog + the safe option so the user can add it to `knownDialogs`. Do not explore other commands or "fix"
+     the model to make a step work.
 5. **One desktop, one runner:** take the desktop lock first; never run two sessions at once; never touch windows of
    other apps — if one covers the host, stop and ask the user to move it.
 6. **Processes and files:** never kill a process, never delete anything except your own run folder
-   `%TEMP%\AddinTest\<run>`. Host already running when you need to start it (or the DLL is locked) → ask the user to close it.
+   `%TEMP%\AddinTest\<run>`. Side effects the add-in writes outside the run folder (e.g. a draft config folder) are
+   reported, not deleted. **Never start a second host instance:** check `Get-Process Revit,acad` first; a running host is
+   used as it is (it may already have the build loaded and the user signed in) — do not call `open_application` for it
+   (that starts another instance). A host that is running but not usable (wrong build, DLL locked) → ask the user.
 7. **Budget:** startup (launch, load, open model) ≤ 15 actions / 5 min once per session; each case ≤ 40 actions /
    15 min; over budget → stop the case as `không hoàn thành`.
 8. **Verdict words:** never write Pass/Fail. Per step: `khớp` / `không khớp` / `không kiểm được`, with what you saw
@@ -65,7 +72,8 @@ file exists, so production users are unaffected. Reference implementation: `refe
   expected value + unit + tolerance + source, expected `[ATEST]` lines, evidence to capture), `test-contract.md`.
 - `.harness/addin-story.json`: `platform`, `deployVersions`, `testBuilds` (year → build output: the `.addin` manifest
   for Revit, the `.dll` for AutoCAD), `testFixtures`, `desktopTest`, optional `testLog` (where the add-in's TestProbe
-  writes) and optional `projectLog` (the add-in's own application log, read as **supplementary** evidence only).
+  writes) and optional `projectLog` (the add-in's own application log, read as **supplementary** evidence only) and optional
+  `knownDialogs` (dialog title → the single safe option to choose, see rule 4).
 - **Test resources** — same rule as addin-story Step 0: a file under a `testFixtures` entry, or a file the user names
   for this run after one confirmation. Never anything else; never browse folders to find a model.
 - `<skill dir>` = the folder of this SKILL.md.
@@ -105,7 +113,8 @@ Then the **desktop lock** `%LOCALAPPDATA%\AddinTest\desktop.lock` (resolve to th
    A mismatch or a missing build → stop; do not continue with another DLL.
 
 ### 4. Start the host and load the build
-`request_access` for the host, then `open_application`. Wait for the main window (poll with
+`request_access` for the host. Host not running → `open_application`; host already running → use it, and if another
+window (File Explorer, ...) covers it, stop and ask the user to uncover it (rule 5). Wait for the main window (poll with
 `powershell -NoProfile -File "<skill dir>/scripts/win-dialogs.ps1"` rather than screenshots; one low-detail screenshot
 if a dialog needs reading).
 - Startup add-in trust prompt → `Load Once` / `Load` only (rule 3).
@@ -114,8 +123,16 @@ if a dialog needs reading).
 - Revit: confirm the add-in's ribbon tab exists (one screenshot).
 - AutoCAD: type `NETLOAD`, in the file dialog type the full DLL path and open; trust prompt → `Load Once`. Then run the
   plugin's command named in the script. Do not change FILEDIA or any other variable.
-- Open the model **copy** through File > Open by typing its full path (never from recent files).
-Wrong state or an unexpected dialog → `win-dialogs.ps1`, stop (rule 4).
+- Open the model **copy** (never the original, never from recent files). In order, record which worked:
+  1. AutoCAD command line: `(command "_.OPEN" "<copy path with forward slashes>")` — no file dialog (untested).
+  2. Start page / File > Open dialog: the computer-use tool only lets you type into the "File name" box and may refuse
+     even there; do not work around it. Navigate by double-clicking folders, or ask the user to paste the path once.
+  The copy is open only when the project log or title shows the `%TEMP%\AddinTest\<run>` path — verify before running
+  anything (the original must never be the active drawing).
+- **Before typing a command:** click the command line, zoom on it to confirm the caret is there and (after typing) that
+  the text is in the line **before** pressing Enter — palettes (External References, Properties) steal focus and swallow
+  keystrokes. Wrong place → do not press Enter; fix the focus.
+Wrong state or an unexpected dialog → rule 4.
 
 ### 5. Run each case by channel
 For each step of the script, act (click, type, keys, pick in the view). Look at the screen only as much as needed to

@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Hicas skills cho add-in Revit/AutoCAD: từ ticket Redmine tới code đã kiểm chứng độc lập",
-    "version": "1.4.0-exp.2"
+    "version": "1.4.0-exp.3"
   },
   "plugins": [
     {
       "name": "hicas-bimcad",
       "description": "Quy trình từ thu thập yêu cầu tới hiện thực hóa cho add-in Revit/AutoCAD (C#, .NET Framework 4.8): đọc ticket Redmine thành tài liệu có Hợp đồng kiểm thử (redmine-us-writer-verified), điều phối nhiều ticket theo US trên git worktree (addin-batch), và team-lead playbook test-first + thẩm định độc lập (addin-story), kèm các subagent; phiên test có ảnh cho QA qua HicasTest (qa-test-session), Claude tự chạy kịch bản test tay bằng computer-use, đọc bằng chứng từ log có tiền tố [ATEST] và chỉ chụp ảnh khi test giao diện (b-desktop-test). Hook guard-git chặn agent ghi vào DEV/UAT/release*/main/master và chặn push trong repo dùng addin-batch. Cần MCP server tên redmine (vd plugin harness-redmine, hoặc extras/redmine.mcp.json).",
-      "version": "1.4.0-exp.2",
+      "version": "1.4.0-exp.3",
       "author": {
         "name": "Hicas BIM/CAD"
       },
