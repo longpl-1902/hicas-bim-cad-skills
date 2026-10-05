@@ -36,4 +36,3 @@ description: QA asks in plain words to test a feature of a Revit/AutoCAD add-in 
 ## Output
 
 The report path and a ≤ 6-line summary: steps run, errors, values checked. No Pass/Fail verdict — QA decides.
-If QA confirms a result that should be repeatable, offer to save the scenario as a YAML case for `b-auto-run`.

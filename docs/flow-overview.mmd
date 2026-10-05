@@ -21,7 +21,7 @@ flowchart TB
   ROUTE -- "1 ticket" --> S
   ROUTE -- "≥ 2 ticket / con của US" --> B --> BG --> WT -- "resume" --> S
 
-  T["<b>Test cấp B / Critical</b><br/>b-auto-run (HicasTest) → b-desktop-test<br/>máy chỉ cho bằng chứng, không ghi Pass"]:::skill
+  T["<b>Test cấp B / Critical</b><br/>b-desktop-test (Claude điều khiển desktop)<br/>máy chỉ cho bằng chứng, không ghi Pass"]:::skill
   TG{{"Người xác nhận<br/>case B / Critical"}}:::gate
   S --> T --> TG
 

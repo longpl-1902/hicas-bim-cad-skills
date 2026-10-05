@@ -181,11 +181,6 @@ Print one table: `Lane | state | task tiến độ | eval | B chờ | drift | vi
 A lane whose `qa-handover.md` exists → state `b-test`, append it to `b-queue.md`.
 
 ## Level-B queue (`b-queue.md`)
-If `automationBridge` is `hicas-test`, first run `b-auto-run` for every lane in `b-test` state, one lane at a time
-(each run uses a fresh host process with that lane's build, so lanes never share a host). Add a column `máy` to
-`b-queue.md` (`MATCH n / MISMATCH n / NOT-RUN n`) and move lanes with MISMATCH or ERROR to the front of the human
-queue. Machine results never close a case.
-
 Human confirmation of B / [Critical] cases happens **once, at the end of the batch, on the integration build**
 (`finish`), not lane by lane — fewer host restarts and the cases are checked on the code that will be merged.
 With `desktopTest: computer-use`, `finish` first runs `b-desktop-test` (one lane after another, lanes with
@@ -198,8 +193,8 @@ Manager or the project's usual dev load method — never overwrite an installed 
 model/DWG, and the lane's `qa-handover.md` scripts. One lane per host process.
 
 ## `sync <lane>` — merge a finished lane into the integration branch
-1. Requires: every task `ready-to-push`, latest eval PASS / PASS-WITH-NOTES, `qa-handover.md` written, and
-   `b-auto-run` done when `hicas-test` is available. B / [Critical] stay "Chờ xác nhận" — the user confirms them in
+1. Requires: every task `ready-to-push`, latest eval PASS / PASS-WITH-NOTES, `qa-handover.md` written.
+   B / [Critical] stay "Chờ xác nhận" — the user confirms them in
    `finish`.
 2. Commit in the lane worktree (rule 4 — no question needed): one commit per story, message format from
    addin-story Phase 6 + project rules, never staging `.harness/` or `.claude/`.
@@ -211,8 +206,7 @@ model/DWG, and the lane's `qa-handover.md` scripts. One lane per host process.
 5. Merge into the integration worktree:
    `git -C <int wt> merge --no-ff <lane branch> -m "merge(lane <id>): <story title> [refs #<ids>]"` — exactly one
    merge commit per US, so a rejected US can later be removed with `git revert -m 1 <merge commit>`.
-6. Integration check in the integration worktree: every build command + all tests (and `b-auto-run` on the
-   integration build when available). Fail → `git -C <int wt> reset --hard ORIG_HEAD` is **not** allowed by
+6. Integration check in the integration worktree: every build command + all tests. Fail → `git -C <int wt> reset --hard ORIG_HEAD` is **not** allowed by
    default; instead revert the merge (`git revert -m 1`), mark the lane `sync-failed`, send it back to its session.
 7. Record the merge commit in `schedule.md`, set the lane `merged`, log it. Lanes of the next wave can launch now.
    Nothing is pushed.
@@ -221,8 +215,7 @@ model/DWG, and the lane's `qa-handover.md` scripts. One lane per host process.
 1. Requires: every approved lane `merged` or explicitly dropped by the user.
 2. Bring the base in: `git fetch` (if a remote exists) then merge the fresher of `<base>` / `origin/<base>` **into the
    integration branch** (`--no-ff`). Business-code conflicts → stop and show the user.
-3. Final check on the integration worktree: every build, all tests, `b-auto-run` for every lane's B cases on the
-   integration build (if available). Save outputs under `.harness/batch/evidence/<integration>/`.
+3. Final check on the integration worktree: every build, all tests. Save outputs under `.harness/batch/evidence/<integration>/`.
 4. Write `.harness/batch/mr-<integration>.md` — the MR description the **user** will paste:
    title `<integration> → <base>: <n> US`; per US: tickets, merge commit, files changed, cases A Pass / B status /
    [Critical], links to `qa-handover.md` and machine reports; how to drop one US (`git revert -m 1 <merge>`);

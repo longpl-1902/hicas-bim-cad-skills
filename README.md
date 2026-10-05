@@ -19,7 +19,6 @@ Chi tiết các phase của `addin-story`: [`docs/flow-story.png`](docs/flow-sto
 | [`redmine-us-writer-verified`](skills/redmine-us-writer-verified/SKILL.md) | Đọc ticket qua MCP Redmine, viết `.md` cho dev agent kèm ma trận R→AC, oracle có nguồn, bằng chứng, người xác nhận | Tự kích hoạt khi nhắc ticket Redmine, hoặc `/hicas-bimcad:redmine-us-writer-verified <ID>` |
 | [`addin-batch`](skills/addin-batch/SKILL.md) | Điều phối nhiều ticket: gom Task/Implement/Bug theo US, lập kế hoạch, kiểm xung đột, 1 lượt duyệt, chạy mỗi US trong git worktree riêng, hàng đợi test level B và MR | `/hicas-bimcad:addin-batch plan` |
 | [`addin-story`](skills/addin-story/SKILL.md) | Team-lead playbook cho 1 ticket/US: test-first, maker ≠ checker, evaluator độc lập | `/hicas-bimcad:addin-story <file.md> [auto\|resume]` |
-| [`b-auto-run`](skills/b-auto-run/SKILL.md) | Chạy tự động các case cấp B trong Revit/AutoCAD thật bằng HicasTest, trên mọi năm deploy đã cài; gắn báo cáo máy vào `qa-handover.md`, ghi ledger. Không bao giờ ghi Pass | Từ addin-story Phase 5.4 / addin-batch khi `automationBridge` = `hicas-test`, hoặc `/hicas-bimcad:b-auto-run` |
 | [`qa-test-session`](skills/qa-test-session/SKILL.md) | QA mô tả bằng lời, Claude điều khiển Revit/AutoCAD từng bước, chụp ảnh mỗi bước, xuất báo cáo | Tự kích hoạt khi QA nhờ test một tính năng, hoặc `/hicas-bimcad:qa-test-session` |
 | [`b-desktop-test`](skills/b-desktop-test/SKILL.md) | Sau khi story code + unit test xong, Claude **tự lấy quyền điều khiển máy** (computer-use) chạy các kịch bản test tay B / Critical trong `qa-handover.md` trên bản copy fixture, chụp ảnh từng bước, ghi bằng chứng. Chỉ điều khiển Revit/AutoCAD, dừng ở màn đăng nhập/license/hộp thoại lạ, không bao giờ ghi Pass | Từ addin-story Phase 6 / addin-batch `finish` khi `desktopTest` = `computer-use`, hoặc `/hicas-bimcad:b-desktop-test` |
 
@@ -28,7 +27,7 @@ Subagent đi kèm (`hicas-bimcad:<tên>`): `addin-scout`, `addin-implementer`, `
 
 MCP: plugin **không tự cài** server Redmine; cần một MCP server tên `redmine` (`mcp-redmine`). Hiện lấy từ plugin `harness-redmine`. Khi bỏ plugin đó, dùng cấu hình mẫu [`extras/redmine.mcp.json`](extras/redmine.mcp.json) (chỉ đọc mặc định, đọc biến môi trường).
 
-MCP cho test tự động (tuỳ chọn): `b-auto-run` và `qa-test-session` cần tool
+MCP cho test tự động (tuỳ chọn): `qa-test-session` và `b-desktop-test` cần tool
 [HicasTest](https://github.com/longpl-1902/hicas-bimcad-test-tool) cài trên máy có Revit/AutoCAD, với MCP server tên
 `hicas-test`. Cách nhanh nhất: chạy `install.ps1 -RegisterMcp` trong gói HicasTest; hoặc dùng mẫu
 [`extras/hicas-test.mcp.json`](extras/hicas-test.mcp.json). Trong repo add-in, đặt `automationBridge: "hicas-test"`,

@@ -109,7 +109,7 @@ files hasn't changed the facts). Otherwise determine and save:
 - **Version lock = the lowest deployed host version**, not the compile version. If one DLL ships to several
   host years, APIs newer than `apiFloor` are forbidden.
 - Detect platform from csproj references (`RevitAPI*` → Revit; `AcMgd/AcDbMgd/AcCoreMgd`/AutoCAD.NET → AutoCAD).
-- **Test resources** (models / DWGs any host test may open — b-auto-run, b-desktop-test, qa-test-session):
+- **Test resources** (models / DWGs any host test may open — b-desktop-test, qa-test-session):
   1. a file under a `testFixtures` entry — a string or a list of folders/files, any drive or UNC path; or
   2. a file the user names in the conversation for this run ("test bằng D:\Models\toa-A.rvt"), after asking once:
      "Xác nhận `<path>` là model dùng để test được (không phải bản làm việc của khách hàng)?".
@@ -240,13 +240,10 @@ files. Run every build command from Step 0. Must pass before Phase 4.
    - FAIL → fix → **new** blind evaluator for the next attempt (max 3 attempts, then stop and report to the user);
      give it only paths + build/test commands, never the previous verdict. PASS → task(s) `ready-to-push`.
 4. **Level-B machine evidence (optional, saves the user time):**
-   - `automationBridge` is `hicas-test` → run the `b-auto-run` skill for this story: YAML in `F/b-cases/`,
-     evidence in `F/evidence/host/<year>/`, ledger `F/b-auto-ledger.csv`, one run per `deployVersions` year that
-     is installed and has a `testBuilds` entry. The tool opens only test resources (Step 0), always on a copy.
-   - Another bridge (an add-in's own MCP) and the user has a **test/golden** model or DWG open → use **read-only**
+   - A bridge (an add-in's own MCP) and the user has a **test/golden** model or DWG open → use **read-only**
      tools to dump the values a B case needs into `evidence/T<n>/<case>-host.txt`. WRITE tools only on a test
      model with preview/dry-run and the user's OK.
-   Either way the case stays "Chờ xác nhận — có bằng chứng máy" at best; a human still confirms. Tool verdicts
+   The case stays "Chờ xác nhận — có bằng chứng máy" at best; a human still confirms. Tool verdicts
    (`MATCH/MISMATCH/NOT-RUN/ERROR`) are never written as Pass. Never touch customer models without explicit permission.
 
 ## Phase 6 — Integrate & hand over
@@ -257,8 +254,6 @@ files. Run every build command from Step 0. Must pass before Phase 4.
 5. `F/qa-handover.md` from template: per-case table (writer format), step-by-step scripts for every B / Critical
    case (model/DWG, button/command, inputs, expected value + unit + tolerance + source, evidence to capture),
    Redmine comment **draft**. Knowledge worth keeping → propose a known-issue entry (text only).
-   Fill each B script's optional "Tự động hoá" block (host years, fixture, command id, dialog answers) when known;
-   for cases run by `b-auto-run`, put the report path(s) in the evidence column and keep the blind-first note.
    `desktopTest` is `computer-use` and not in an addin-batch lane → after the full build + tests pass, run the
    `b-desktop-test` skill for this story's B / Critical scripts (it asks the user once before taking the desktop).
    In a lane, leave it to addin-batch (one desktop for all lanes).

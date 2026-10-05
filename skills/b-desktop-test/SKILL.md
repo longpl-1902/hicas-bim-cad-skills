@@ -46,8 +46,6 @@ until a person confirms it. [Critical] cases always need a person.
   `desktopTest`.
 - **Test resources** — same rule as addin-story Step 0: a file under a `testFixtures` entry (folders/files, any
   drive or UNC path), or a file the user names for this run after one confirmation. Never anything else.
-- Optional: `F/b-cases/` and `b-auto-run` reports. **Do not read machine reports before running a case** (blind
-  first, same rule as for human testers); read them afterwards only to note disagreements.
 
 ## Steps
 
@@ -102,7 +100,6 @@ otherwise end the session.
 2. Write the desktop lock `free`.
 3. In `qa-handover.md`, per case: evidence column = report path; status
    `Chờ xác nhận — có bằng chứng máy (Claude thao tác)`; one line: steps khớp / không khớp / không kiểm được.
-   If a `b-auto-run` report exists for the case, now compare and note any disagreement.
 4. Report to the user (Vietnamese, ≤ 10 lines): cases run / stopped / not runnable, steps không khớp first (case,
    step, expected vs seen), what the person must still check (visual items, [Critical]), the report path. No
    Pass/Fail.
