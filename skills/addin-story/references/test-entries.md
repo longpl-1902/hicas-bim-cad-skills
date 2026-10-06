@@ -93,7 +93,26 @@ Show the dialog → build the request → call the same use case with the produc
 No business logic, no host API beyond what it needs to start the use case. Reviewer and evaluator check the command
 and the entry together in the same diff, because this is the gap a test entry cannot close.
 
-## 6. What an agent can then do
+## 6. Where things live, and the wrong-build guard
+
+- Test assembly `<Addin>.Testing.dll` references the add-in's assemblies and `HicasTest.Contracts.dll` (HicasTest install folder,
+  `contracts/`; dependency-free). Build it **into the add-in's output folder** so one copy of every assembly exists.
+- A .NET assembly loads once per identity. If a dev manifest (e.g. `ExternalTool.addin` pointing at another worktree's output), an
+  installed copy or an earlier add-in start already loaded another build, the entries would silently run THAT code. HicasTest checks
+  this on every `list_entries` / `call_entry` / entries case and reports `WARNING wrong build?` (case: `ERROR`). Fix it by disabling
+  or re-pointing the other manifest; never ignore it.
+- Cases need no `addin:` block: the use case is called directly. Add one only for state built in `OnStartup`.
+
+## 7. Lessons from the first pilot (an existing add-in function behind an entry)
+
+- A function that looks read-only may write (it hid scope boxes in the view and failed outside a transaction). A `.plan` / `.validate`
+  entry that calls legacy code opens a transaction and **rolls it back**, so "read-only" stays true.
+- The fixture must contain what the use case reads (the function only measured MEP elements: an architectural model gave "nothing
+  found"). Choose the test resource from the contract's input, not the other way round.
+- A call that reports a status but leaves the model unchanged on a second run shows up at once when calls run in sequence in one case:
+  keep such "run it twice" calls in the case.
+
+## 8. What an agent can then do
 
 1. `list_entries` → names, kind (main / step), read-only flag, prompt ids.
 2. `call_entry("keyplan.create.validate", request)` → which prompts the flow would raise, no write.

@@ -29,7 +29,12 @@ Status stays `Chờ xác nhận — có bằng chứng máy`; a human confirms (
      `expectResult` / `expectPrompts` / `expect` on each call. No ribbon, no dialog, no screenshot.
    - **B case**: `run` from the script's button/command (Revit `CustomCtrl_%CustomCtrl_%<Tab>%<Panel>%<Button>`; AutoCAD
      command line + prompt answers) and `dialogs`; use the script's "Tự động hoá" block as is. Skip `[Critical]`-only visual checks.
+   - E cases omit `addin:` (the entries call the use case directly); add `addin: <testBuilds[year]>` only when the use case needs
+     state the add-in builds in `OnStartup`.
    - An entry that opens a window ends the run as ERROR (unexpected dialog): that is a defect of the add-in; report it.
+   - ERROR "would not test the build under test": another copy of the add-in (a dev manifest such as ExternalTool.addin, an installed copy)
+     is loaded from another folder, so the entries would run that code. Name the file and folder from the message to the user and
+     stop — never retry or work around it; a MATCH from the wrong build is worse than no result.
 3. `validate_test_case F/b-cases` → fix until ok.
 4. Per target year: `run_test_case path=F/b-cases outputDir=F/evidence/host/<year> ledger=F/b-auto-ledger.csv repeat=<n> hostVersion=<year>` (`repeat=1` in the dev loop of Phase 4, `repeat=2` in the final run to detect flaky cases)
    (one case = one host start, ~20–35 s; a call takes milliseconds. So put all E calls of a feature in **one** case as

@@ -100,6 +100,7 @@ files hasn't changed the facts). Otherwise determine and save:
   "testBuilds": { "2024": "src/X/bin/Debug/R2024/X.addin", "2026": "src/X/bin/Debug/R2026/X.addin" },
   "testFixtures": ["tests/fixtures/", "D:/TestModels/Hawee/", "\\\\server\\qa\\models\\basic.rvt"] | "none",
   "testEntries": { "2024": "src/X.Testing/bin/Debug/R2024/X.Testing.dll" } | "none",
+  "testContracts": "<HicasTest install folder>/contracts/HicasTest.Contracts.dll",
   "desktopTest": "none (parked: computer-use skill b-desktop-test runs only when the user asks)",
   "automationRule": "e.g. MCP-FEAT-001: new capability needs a tool | none",
   "baseBranch": "DEV", "highRiskPaths": ["**/*.csproj", "..."] }
@@ -193,7 +194,9 @@ eval verdict, branch proposal. Ask with AskUserQuestion: **Duyệt** / **Sửa (
 Write shared interfaces/DTOs/enums yourself (reuse first, XML doc). Add every new file to **all** twin project
 files. Run every build command from Step 0. Must pass before Phase 4.
 If `testEntries` is set and the repo has no test assembly yet, T0 also creates it (`<Addin>.Testing`, all twin project files,
-one reference: `HicasTest.Contracts.dll` from the HicasTest package folder `contracts/`, no other packages), plus `IUserPrompt`,
+one reference: `HicasTest.Contracts.dll` = `testContracts`, found in `contracts/` of the HicasTest install folder (default
+%LOCALAPPDATA%/Programs/HicasTest), no other packages), built **into the same output folder as the add-in's own assemblies**
+(HicasTest refuses to run entries when those assemblies are already loaded from another folder), plus `IUserPrompt`,
 the request/result DTOs and the contract files of the story's model-changing features.
 
 ## Phase 4 — Test-first implementation (per task, in dependency order)
