@@ -1,6 +1,6 @@
 ---
 name: redmine-us-writer-verified
-description: Đọc ticket Redmine (Bug/Task/US/Implementation) qua MCP Redmine và viết lại thành tài liệu .md đầy đủ cho dev agent, kèm Hợp đồng kiểm thử độc lập (truy vết R→AC, oracle có nguồn, bằng chứng, người xác nhận). Dùng khi nhắc Redmine, ticket, bug, task, US, implementation cần giao cho dev agent với test chống tự bao che; đầu ra là đầu vào của addin-story.
+description: Đọc ticket Redmine (Bug/Task/US/Implementation) qua MCP Redmine và viết lại thành tài liệu .md đầy đủ cho dev agent, kèm Hợp đồng kiểm thử độc lập (truy vết R→AC, oracle có nguồn, bằng chứng, người xác nhận). Dùng khi nhắc Redmine, ticket, bug, task, US, implementation cần giao cho dev agent với test chống tự bao che; đầu ra là đầu vào của addin-story. Sau khi dev duyệt, tự chuyển tiếp sang addin-story (1 ticket) hoặc addin-batch (nhiều ticket).
 compatibility: Cần MCP server tên redmine (mcp-redmine, có tool redmine_request) (vd từ plugin harness-redmine, hoặc cấu hình mẫu extras/redmine.mcp.json của repo hicas-skills).
 metadata:
   author: Hicas BIM/CAD
@@ -32,7 +32,7 @@ Nếu user chỉ đưa số ticket hoặc URL dạng `https://<redmine-host>/iss
 redmine_request(
   path="/issues/<ID>.json",
   method="get",
-  params={"include": "journals,attachments,relations,children,watchers"}
+  params={"include": "journals,attachments,relations,children"}
 )
 ```
 
@@ -270,40 +270,20 @@ Quy ước các cột:
 - Dev agent có thể **thêm** case; muốn **sửa hoặc bớt** case phải ghi "Đề xuất thay đổi test" kèm lý do và chờ người duyệt, không tự quyết.
 - Test skip hoặc không chạy được tính là FAIL cho tới khi có giải thích được người chấp nhận.
 
-### Mục "Quy tắc thực thi và kiểm chứng cho dev agent" (đưa nguyên mục này vào mọi tài liệu)
+### Mục "Quy tắc thực thi và kiểm chứng cho dev agent" (bản gọn, đưa vào mọi tài liệu; giữ nguyên tiêu đề vì lint tìm nó)
 
 ```markdown
 ## Quy tắc thực thi và kiểm chứng cho dev agent
 
-1. Làm đúng phạm vi. Không đụng thứ nằm ngoài "Trong phạm vi". Gặp điều chưa rõ thì dừng và báo, không tự đoán.
-2. Hợp đồng kiểm thử là cố định. Chỉ được thêm case; sửa hay bớt case phải đề xuất và chờ người duyệt.
-3. Với Bug: chạy case tái hiện trước khi sửa và lưu output FAIL; sau khi sửa chạy lại và lưu output PASS.
-4. Với mỗi case cấp A: chạy thật, dán lệnh, exit code và output nguyên văn. Không tóm tắt thay cho output.
-5. Với mỗi case cấp B: không ghi Pass. Ghi "Chờ xác nhận" kèm hướng dẫn người chạy từng bước và bằng chứng cần thu.
-6. Báo cáo trung thực: case nào không chạy được, đã skip hoặc chưa đủ bằng chứng thì ghi đúng như vậy. Báo cáo của bạn sẽ được agent thẩm định đối chiếu lại bằng cách chạy độc lập; sai lệch giữa báo cáo và kết quả thực tế được tính là lỗi nghiêm trọng.
-7. Không tự xác nhận case của chính mình. Agent viết code không được đóng vai thẩm định cho cùng thay đổi.
-
-### Mẫu báo cáo bàn giao của dev agent
-| Case | Trạng thái | Bằng chứng (lệnh, output, commit) |
-|------|------------|-----------------------------------|
-| AC-01 | Pass có bằng chứng / Fail / Chờ xác nhận / Chưa chạy được (lý do) | ... |
-
-Kèm: danh sách thay đổi theo từng R (file, nội dung), điểm chưa làm được và lý do, đề xuất thay đổi test (nếu có).
+1. Làm đúng phạm vi; điều chưa rõ thì dừng và báo, không đoán.
+2. Hợp đồng kiểm thử cố định: chỉ được thêm case; sửa/bớt phải ghi "Đề xuất thay đổi test" và chờ người duyệt.
+3. Bug: lưu output FAIL của case tái hiện trước khi sửa, output PASS sau khi sửa.
+4. Case cấp A: chạy thật, dán lệnh + exit code + output nguyên văn. Case cấp B: không ghi Pass, chỉ "Chờ xác nhận" kèm các bước cho người chạy và bằng chứng cần thu.
+5. Báo cáo trung thực (case skip/chưa chạy ghi đúng như vậy); sẽ có agent thẩm định chạy lại độc lập, sai lệch với báo cáo là lỗi nghiêm trọng. Không tự xác nhận case của chính mình.
+6. Mẫu báo cáo: bảng `Case | Trạng thái (Pass có bằng chứng / Fail / Chờ xác nhận / Chưa chạy được + lý do) | Bằng chứng`, kèm thay đổi theo từng R, điểm chưa làm, đề xuất đổi test.
 ```
 
-### Hướng dẫn cho agent thẩm định (đưa vào tài liệu hoặc file riêng đi kèm)
-
-```markdown
-## Quy tắc cho Verifier agent
-
-1. Chỉ nhận: tài liệu ticket (kèm Hợp đồng kiểm thử), mã nguồn/diff, kết quả build. **Không dựa vào lời giải thích hay kết luận của dev agent.**
-2. Tự chạy lại mọi case cấp A trên bản code cần kiểm, ghi lệnh và output nguyên văn. Báo cáo của dev agent chỉ dùng để so sánh sau khi đã có kết quả của chính mình.
-3. Kiểm tra truy vết: mỗi R có case; mỗi case có bằng chứng đúng loại.
-4. Kiểm tra chất lượng test: có assert giá trị cụ thể; có khả năng fail (chạy trên code cũ hoặc phá có chủ đích); không bị skip, nới, mock chính đối tượng test; giá trị kỳ vọng có nguồn độc lập.
-5. So sánh với báo cáo dev: mọi chỗ lệch ghi là MISMATCH.
-6. Với case cấp B và [Critical]: chuyển cho người, không tự kết luận Pass.
-7. Kết luận từng case: Pass / Fail / Chờ người / Mismatch. Chỉ tuyên bố "đạt" cho cả ticket khi mọi case cấp A là Pass có bằng chứng, không có Mismatch, và case cấp B/[Critical] đã được người xác nhận.
-```
+Quy tắc cho agent thẩm định (chạy lại độc lập, không tin báo cáo của dev, kiểm chất lượng test, case B/[Critical] chuyển cho người) **không** đưa vào tài liệu ticket: nằm sẵn trong agent `evaluator` của plugin. Chỉ khi user cần giao ticket cho một verifier ngoài plugin thì mới viết riêng một file, không nhúng vào ticket.
 
 ### Nguyên tắc viết
 
@@ -345,10 +325,21 @@ Nếu có điểm không thể đạt vì thiếu thông tin, ghi rõ thay vì l
    - Đang ở trong git repo (thư mục làm việc hiện tại): lưu vào `<repo>/.harness/tickets/`. Trước khi ghi, chạy `git check-ignore -q .harness/x`; nếu `.harness/` chưa bị ignore thì hỏi user cho thêm `.harness/` vào `.git/info/exclude` (local, không commit), không sửa `.gitignore`.
    - Không ở trong git repo: lưu vào thư mục làm việc hiện tại.
    - Ghi file UTF-8 (không BOM), giữ nguyên dấu tiếng Việt, vì `lint-story.mjs` của addin-story đọc theo các nhãn tiếng Việt (`- Loại:`, `Hợp đồng kiểm thử`, cột `R`, `Cấp`, `Kết quả đúng`, `Bằng chứng bắt buộc`, `Xác nhận bởi`). Không đổi tên các nhãn/cột này.
-2. Trong chat, in bản hoàn chỉnh (hoặc nếu quá dài thì nói rõ file đã lưu và tóm tắt các mục chính).
-3. Cuối bản in, thêm một dòng ngắn: những điểm đã hỏi user, số giả định còn lại, **số case cấp A / E / B / [Critical]**, và đường dẫn file đã lưu. Không viết thêm phần giải thích dài ngoài bản chính.
-4. Nếu repo là add-in Revit/AutoCAD và skill `addin-story` có sẵn (cùng plugin hicas-bimcad: thư mục `../addin-story/` cạnh skill này): tự chạy lint `node "<thư mục skill addin-story>/scripts/lint-story.mjs" <file.md>`. Exit 1 thì sửa tài liệu theo lỗi rồi lint lại (tối đa 2 lần); exit 0/2 thì báo kết quả. Sau đó đưa lệnh bàn giao để user tự chạy (addin-story không tự gọi được): `/hicas-bimcad:addin-story <đường dẫn file.md>`.
+2. **Không in lại toàn bộ tài liệu trong chat** (file đã có trên đĩa; in lại tốn token output gấp đôi mà user mở file là xem được). Chỉ in: tiêu đề, loại, số R, và tóm tắt ≤ 5 dòng.
+3. Thêm một dòng ngắn: những điểm đã hỏi user, số giả định còn lại, **số case cấp A / E / B / [Critical]**, và đường dẫn file đã lưu. Khi chạy dưới addin-batch (subagent) chỉ trả về đường dẫn file, mã lint và danh sách câu hỏi mở.
+4. Nếu repo là add-in Revit/AutoCAD và skill `addin-story` có sẵn (cùng plugin hicas-bimcad: thư mục `../addin-story/` cạnh skill này): tự chạy lint `node "<thư mục skill addin-story>/scripts/lint-story.mjs" <file.md>`. Exit 1 thì sửa tài liệu theo lỗi rồi lint lại (tối đa 2 lần); exit 0/2 thì báo kết quả.
 5. Nhiều ticket: mỗi ticket một file .md riêng.
+6. **Chuyển tiếp tự động sau khi dev duyệt.** Chỉ khi repo là add-in Revit/AutoCAD, lint không còn exit 1, và bạn đang chạy
+   **trực tiếp với dev** (không phải subagent do `addin-batch` giao; trường hợp đó chỉ trả đường dẫn, không chuyển tiếp):
+   - Chọn luồng theo số file vừa viết: **1 file → `addin-story`**; **≥ 2 file, hoặc ticket là con của một US còn ticket
+     khác của dev → `addin-batch`**.
+   - Hỏi dev **một lần** (AskUserQuestion): "Duyệt bản ticket để chạy tiếp?" — `Duyệt, chạy <addin-story|addin-batch>` /
+     `Sửa (ghi chú)` / `Dừng ở đây`. Nêu kèm số câu hỏi mở và số case `Chờ người xác nhận` còn lại.
+   - `Duyệt` → gọi ngay bằng công cụ Skill (không bắt dev gõ lại): `hicas-bimcad:addin-story` với args `<đường dẫn file.md>`
+     hoặc `hicas-bimcad:addin-batch` với args `plan <các ID>`. Không truyền `auto`. Câu trả lời "Duyệt" của dev chính là
+     yêu cầu tường minh mà hai skill kia đòi hỏi. `Sửa` → sửa các mục bị ảnh hưởng rồi hỏi lại; `Dừng` → in lệnh để dev tự chạy sau.
+   - Skill kia không có sẵn hoặc gọi lỗi → in lệnh `/hicas-bimcad:addin-story <file.md>` hoặc `/hicas-bimcad:addin-batch plan <ID>`.
+   - `addin-batch` thấy file trong `.harness/tickets/` còn mới (không cũ hơn `updated_on`) thì không viết lại: không tốn token hai lần.
 6. Chỉ ghi ngược lên Redmine khi user yêu cầu rõ; khi đó cho user duyệt bản cuối trước khi đăng. Lưu ý MCP Redmine có thể đang ở chế độ chỉ đọc (`REDMINE_READ_ONLY=1`): nếu lệnh ghi bị từ chối thì báo user và đưa file .md để họ tự dán, không tìm cách vòng qua.
 
 ## Trường hợp đặc biệt

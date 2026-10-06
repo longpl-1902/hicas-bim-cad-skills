@@ -72,7 +72,7 @@ Constraints: no new dependencies, XML doc, guard clauses.
 Then review what it wrote; you own the quality. Only give it files you own.
 
 ## Before finishing
-1. Build with **every** build command in the spawn prompt (all solutions; the build gate serialises builds). Fix errors in your files;
+1. Build with **every** build command in the spawn prompt (all solutions; the build gate serialises builds). Redirect output to a file and read back only the exit code and `error` lines. Fix errors in your files;
    errors only in others' files → message the owner or `team-lead`.
 2. Add/extend unit tests for Domain/Application logic you wrote (fakes of interfaces, no host at test time),
    bound to contract case ids in the test name (e.g. `AC01_RotatedView_TagOffsetIsPerpendicular`).

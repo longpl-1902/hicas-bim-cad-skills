@@ -1,6 +1,6 @@
 ---
 name: addin-story
-description: Team-lead playbook that delivers one Redmine ticket (US / Task / Implementation / Bug) in a Revit or AutoCAD add-in (C#, .NET Framework 4.8), taking the ticket .md produced by redmine-us-writer-verified as input (readiness → design → tasks → test-first implement → independent evaluate → QA handover). Run only when the user explicitly invokes addin-story or hands over a ticket .md and asks to implement it; never start it on your own.
+description: Team-lead playbook that delivers one Redmine ticket (US / Task / Implementation / Bug) in a Revit or AutoCAD add-in (C#, .NET Framework 4.8), taking the ticket .md produced by redmine-us-writer-verified as input (readiness → design → tasks → test-first implement → independent evaluate → QA handover). Run only when the user explicitly invokes addin-story, hands over a ticket .md and asks to implement it, or approves the hand-off that redmine-us-writer-verified offers after writing the ticket; never start it on your own.
 metadata:
   author: Hicas BIM/CAD
   version: "1.0.0"
@@ -51,20 +51,31 @@ Active when `.harness/lane.json` exists in the current repo root (written by `ad
 7. You write production code only for: shared interfaces/DTOs (T0), project-file entries, command/ribbon
    registration. Everything else is delegated.
 
+## Token budget (applies to you and to every agent you spawn)
+1. **Paths, not contents.** Pass file paths to agents; never paste ticket/design text into a prompt or into chat.
+2. **Command output goes to a file.** Run builds/tests as `<cmd> > F/evidence/<…>.txt 2>&1` and read back only the exit
+   code plus the error / failed-test lines (`grep -E "error |Failed|Passed!|Total"`, ≤ 30 lines). Never let a full
+   msbuild log enter the context.
+3. **Read slices.** Grep first, then Read a range; never re-read a file that has not changed; agents read only their
+   own task section of `tasks.md` and the `test-contract.md` rows of their cases.
+4. **One independent pass per decision, sized by risk** (see Phase 2.4, 4.1, 5). More checkers for high risk, fewer for
+   low risk — the maker ≠ checker rule stays, the number of repeats does not.
+5. **Continue, don't respawn.** A follow-up for an agent that already holds the context (evaluator round 2, a fix to
+   the same implementer) goes by `SendMessage`, not a new spawn.
+6. Reports are tables / one-liners (≤ 15 lines). Do not echo documents back to the user; give the path.
+
 ## File layout
 `.harness/` is only the git-excluded data folder of this process (no plugin required).
 `featuresDir` = `.harness/config.json → featuresDir` if that file sets it, default `.harness/features`. `F = <featuresDir>/<ID>/`.
 
 | File | Written by | Purpose |
 |---|---|---|
-| `source.md` | lead (copy) | Writer's document, byte-for-byte |
-| `us.md` | lead | Front-matter (`us`, `status`, `source`, `updated`) + full writer document verbatim (evaluator reads AC from here) |
-| `test-contract.md` | lead | The contract section verbatim (+ approved upgrades). Frozen |
-| `readiness.md` | lead | Lint result, code conflicts, contract upgrade, closed questions |
-| `readiness.md`, `design.md`, `tasks.md`, `qa-handover.md` | lead | From [assets/templates/](assets/templates/) |
+| `us.md` | lead | Front-matter (`us`, `status`, `source` = path of the writer's original, `updated`) + the writer document **without** its contract section (replaced by the line `→ xem test-contract.md`) |
+| `test-contract.md` | lead | The contract section verbatim (+ approved upgrades). Frozen. `us.md` + `test-contract.md` = the original, nothing stored twice |
+| `readiness.md`, `design.md`, `tasks.md`, `qa-handover.md` | lead | From [assets/templates/](assets/templates/) (readiness: lint result, code conflicts, contract upgrade, closed questions) |
 | `evidence/T<n>/<case>-<before\|after>.txt` | implementers / lead | Raw command + exit code + output |
-| `mr-T<n>.md` | lead | Verifiable claims only (input to evaluator round 2) |
-| `eval-<T<n>\|design>-<k>.md` | evaluator via lead | Front-matter `target`, `round`, `verdict: PASS\|PASS-WITH-NOTES\|FAIL`, `evaluator`, `human_agrees:` (empty); body = rubric table + issues |
+| `mr-<n>.md` (`n` = `T<n>` or `story`) | lead | Verifiable claims only (input to evaluator round 2) |
+| `eval-<T<n>\|story\|design>-<k>.md` | evaluator via lead | Front-matter `target`, `round`, `verdict: PASS\|PASS-WITH-NOTES\|FAIL`, `evaluator`, `human_agrees:` (empty); body = rubric table + issues |
 | `qa-handover.md` | lead | Per-case status + manual scripts for level B |
 | `log.md` | everyone | `<date> \| <step> \| <result> \| <who approved>` append-only |
 
@@ -109,14 +120,15 @@ files hasn't changed the facts). Otherwise determine and save:
   `chưa chạy được (thiếu fixture)`; ask the user for a resource instead of substituting one.
 
 ## Phase 0 — Ingest & route
-1. Obtain the document: a path → copy to `F/source.md`. Only an ID / raw text → ask the user to run
+1. Obtain the document: a path (use it in place, do not copy it). Only an ID / raw text → ask the user to run
    `redmine-us-writer-verified` first (preferred) or paste the ticket; never write the ticket yourself.
-2. Lint: `node "<skill dir>/scripts/lint-story.mjs" F/source.md` (add `--json` for parsing).
+2. Lint: `node "<skill dir>/scripts/lint-story.mjs" <path>` (add `--json` for parsing).
    - exit 1 (errors) → show errors, stop; the fix belongs in the writer document, not here.
    - exit 2 (legacy writer format: no R / level / evidence / verifier) → continue; Phase 1 upgrades the contract.
    - exit 0 → continue.
-3. Write `F/us.md` (front-matter `us/status: draft/source/updated` + full document verbatim) and
-   `F/test-contract.md` (contract section verbatim, header line "ĐÓNG BĂNG — chỉ được thêm case").
+3. Split the document once, mechanically (no rewording): `F/test-contract.md` = the contract section verbatim under the
+   header line "ĐÓNG BĂNG — chỉ được thêm case"; `F/us.md` = front-matter (`us/status: draft/source/updated`) + all
+   the rest verbatim.
 4. Route by `Loại`:
 
 | Type | Path |
@@ -126,8 +138,10 @@ files hasn't changed the facts). Otherwise determine and save:
 | **BUG** | Same flow with: Phase 1 = **root-cause analysis with measured evidence** (logs, dumps, failing test) before any fix; design-lite = root cause + fix + blast radius; the "Tái hiện lỗi gốc" case **must FAIL before the fix** with saved output. If level A can't reproduce it, ask the user for a level-B reproduction (model/DWG + steps) and stop until provided |
 
 ## Phase 1 — Readiness-lite + scan (no business questions the writer already answered)
-1. Project map: `.harness/project-map.md` stale (header commit ≠ recent) or missing → delegate to
-   `hicas-bimcad:addin-scout`. Read only story-relevant files yourself (map + Grep). Check `knownIssues` for the area.
+1. Project map: `.harness/project-map.md` missing → delegate to `hicas-bimcad:addin-scout`. Stale (header commit ≠ recent)
+   → refresh only if `git diff --stat <header commit> HEAD` touches the area this story needs; otherwise use it as is.
+   **Lane mode: never refresh** — addin-batch refreshed it once before the worktrees were cut.
+   Read only story-relevant files yourself (map + Grep). Check `knownIssues` for the area.
 2. For every R / case: what exists in code (`file:line`), conflict, already implemented, missing host
    capability, version-lock / threading / performance risk. Use `hicas-bimcad:explorer` (or `Explore`) for wide searches.
 3. **Legacy format** → propose the upgrade in `readiness.md`: assign R-ids (from the requirement sections,
@@ -162,8 +176,9 @@ files hasn't changed the facts). Otherwise determine and save:
    deliverable overwrite, new/changed automation WRITE tool, threading/event/updater code, installer/registration,
    a `highRiskPaths` match, or > 3 tasks. **medium** if host writes limited to new elements or new UI. Else **low**.
 4. Independent design check: run the evaluator (see *Verification*) with target `design`, inputs `us.md`,
-   `test-contract.md`, `readiness.md`, `design.md`, `tasks.md`. FAIL → fix and re-run (max 2). For **high** risk
-   also ask `hicas-bimcad:architect-reviewer` for holes (race, rollback, performance) before the evaluator.
+   `test-contract.md`, `readiness.md`, `design.md`, `tasks.md`. FAIL → fix and re-run (max 2, continue the same
+   evaluator by `SendMessage`). **Evaluator model by risk:** low → `sonnet`, medium/high → `opus` (the agent default).
+   For **high** risk also ask `hicas-bimcad:architect-reviewer` for holes (race, rollback, performance) before the evaluator.
 
 ## Gate — the one planned human decision
 Show ≤ 15 lines: solution in 3 lines, risk, tasks table, contract upgrades (legacy), UNKNOWNs, assumptions,
@@ -182,23 +197,29 @@ one reference: `HicasTest.Contracts.dll` from the HicasTest package folder `cont
 the request/result DTOs and the contract files of the story's model-changing features.
 
 ## Phase 4 — Test-first implementation (per task, in dependency order)
-1. **Tests first:** `hicas-bimcad:test-writer` (or `hicas-bimcad:addin-implementer` in test-only mode) writes the level-A tests of
-   the task from `test-contract.md` oracles — never from running new code. Run them and save
+1. **Tests first** — from `test-contract.md` oracles, never from running new code; run them and save
    `evidence/T<n>/<case>-before.txt` (command, exit code, raw output). A test that passes now is wrong
    unless the case is a regression guard; say which.
-   E cases: the test-writer also writes the `entries` case `F/b-cases/<case>.yaml` (b-auto-run format) from the contract before
-   any code. It must fail now (entry missing or wrong result); keep its `run_test_case` report as `<case>-before`.
+   - **Risk low/medium (default): one spawn** — the implementer below works test-first in a single session (write
+     tests → run → save `before` → implement → save `after`). It reads the context once; the independence check is
+     the evaluator in Phase 5, and the oracles come from the frozen contract, not from the code.
+   - **Risk high or any `[Critical]` case in the task:** a separate `hicas-bimcad:test-writer` writes the tests first
+     (the implementer never sees how they were written, only runs them).
+   E cases: whoever writes the tests first (the implementer on the one-spawn path, else the test-writer) also writes the
+   `entries` case `F/b-cases/<case>.yaml` (b-auto-run format) from the contract before any code. It must fail now
+   (entry missing or wrong result); keep its `run_test_case` report as `<case>-before`.
 2. **Implement:** default one `hicas-bimcad:addin-implementer` (sonnet). A team (max 3: `impl-core` owns all L0/L1, plus
    `impl-<slice>` / `hicas-bimcad:addin-wpf-ui`) only for ≥ 2 independent tasks with disjoint files. Spawn prompt:
    ```
    Platform: <…>, version floor <apiFloor>. Platform rules: <abs path>. Project rules: <rulesFiles>.
-   Story: <ID>. Read F/design.md, F/tasks.md, F/test-contract.md (frozen). Task: <T-id>.
+   Story: <ID>. Read F/design.md (§3, §5, §6 only), your task section of F/tasks.md, and the rows of F/test-contract.md for your cases (frozen). Task: <T-id>.
    Files you own (only these): <paths>. Interfaces to code against: <files> (do not change; message team-lead).
    Build: <all build commands>. Test: <test command>. Evidence dir: F/evidence/<T-id>/.
+   Redirect build/test output to evidence files; report exit code + error lines only.
    Constraints: <2–5 bullets incl. the blocker rules that apply>.
    Done = builds pass, task tests pass after having failed, evidence saved, report in the standard format.
    ```
-3. After the implementer reports: re-run builds + tests **yourself**, save `<case>-after.txt`. Mismatch with the
+3. After the implementer reports: re-run builds + tests **yourself** (output to file, read back exit code + failing lines), save `<case>-after.txt`. Mismatch with the
    report → treat the report as wrong, log `MISMATCH`.
    **E cases of the task:** build the lane's test assembly and run `b-auto-run` for them yourself (`repeat=1`; the final run in Phase 5.4 uses 2). A task is not
    `ready-to-push` before its entries ran with MATCH; MISMATCH/ERROR goes back to the owner. Keep the report paths in `evidence/T<n>/`.
@@ -206,15 +227,21 @@ the request/result DTOs and the contract files of the story's model-changing fea
    before nudging or reassigning.
 
 ## Phase 5 — Review, then independent verification
-1. **Code review** (quality, not verdict): `hicas-bimcad:addin-reviewer` with platform, rules paths, `F/design.md`, changed files
-   (`git diff HEAD --stat` + untracked). High/Medium → fix tasks to the owner, max 2 rounds; Low → handover.
-2. Write `F/mr-T<n>.md`: goal, cases covered, how verified, risks — **only claims checkable from repo + evidence**.
+0. **Scope by risk.** low/medium with ≤ 3 tasks → one review + one evaluation of the **whole story diff**, after every
+   task is implemented (`<n>` = `story`, one `mr-story.md`); high or > 3 tasks → per task (`<n>` = `T<n>`).
+1. **Code review** (quality, not verdict): **medium/high risk only** — `hicas-bimcad:addin-reviewer` with platform, rules
+   paths, `F/design.md`, changed files (`git diff HEAD --stat` + untracked). High/Medium findings → fix tasks to the
+   owner, max 2 rounds; Low → handover. **Low risk:** no agent; run the mechanical layering checks yourself
+   (`grep -rn "using Autodesk\." <Domain/ViewModels>` empty, new `.cs` in every twin project, no host API in L3) and
+   let the evaluator's rules criterion catch the rest.
+2. Write `F/mr-<n>.md`: goal, cases covered, how verified, risks — **only claims checkable from repo + evidence**.
 3. **Verification** (independent evaluation protocol, run by you so the uncommitted diff is visible):
-   - Agent: `hicas-bimcad:evaluator` if available, else `general-purpose` with model opus and the evaluator stance
+   - Agent: `hicas-bimcad:evaluator` if available, else `general-purpose` with the evaluator stance
      ("default NOT PASSED; trust nothing self-reported; evidence = file:line, test name, command output; read-only").
+     Model by risk: low → `sonnet`; medium, high or any `[Critical]` case → `opus`.
    - **Round 1 (blind):** give only `F/us.md`, `F/test-contract.md`, task section of `F/tasks.md`, `F/design.md`,
      rules files, diff commands `git diff HEAD` + `git status --porcelain`, build/test commands. **Never** give
-     `mr-T<n>.md`, `log.md`, evidence files, implementer reports, or your opinion.
+     `mr-<n>.md`, `log.md`, evidence files, implementer reports, or your opinion.
      Rubric (0/1/2 with evidence): build+tests pass (evaluator runs them) · each claimed case has a test asserting
      the contract value · tests can fail (before-evidence plausible, or mutation reasoning, or baseline run in a
      temporary `git worktree` at HEAD when cheap) · edge cases handled or out of scope · matches design and project
@@ -223,11 +250,13 @@ the request/result DTOs and the contract files of the story's model-changing fea
      test-entry convention ([references/test-entries.md](references/test-entries.md)) for model-changing features:
      steps split, warnings only through `IUserPrompt` with ids, command thin, entry calls the same use case, contract
      file matches the code.
-   - **Round 2 (claims):** then give `mr-T<n>.md` + `evidence/T<n>/`; each claim → ĐÚNG / SAI / KHÔNG KIỂM ĐƯỢC.
+   - **Round 2 (claims):** same evaluator, by `SendMessage` (it keeps its round-1 findings, no re-reading): give
+     `mr-<n>.md` + `evidence/`; each claim → ĐÚNG / SAI / KHÔNG KIỂM ĐƯỢC.
    - Verdict rules: FAIL if any 0, or build/case-test/sensor-bypass < 2, or any SAI claim on a case;
-     PASS-WITH-NOTES if any 1; PASS if all 2. Write `F/eval-T<n>-<k>.md` in the eval format of *File layout* (front-matter
+     PASS-WITH-NOTES if any 1; PASS if all 2. Write `F/eval-<n>-<k>.md` in the eval format of *File layout* (front-matter
      `verdict`, `human_agrees:` empty), log it.
-   - FAIL → fix → **new** evaluator (max 3 rounds, then stop and report to the user). PASS → task `ready-to-push`.
+   - FAIL → fix → **new** blind evaluator for the next attempt (max 3 attempts, then stop and report to the user);
+     give it only paths + build/test commands, never the previous verdict. PASS → task(s) `ready-to-push`.
 4. **Machine evidence for E and B cases (E: required when `testEntries` is set; B: optional, saves the user time):**
    - `automationBridge` is `hicas-test` → run the `b-auto-run` skill for this story: YAML in `F/b-cases/`,
      evidence in `F/evidence/host/<year>/`, ledger `F/b-auto-ledger.csv`, one run per `deployVersions` year that
@@ -240,7 +269,7 @@ the request/result DTOs and the contract files of the story's model-changing fea
 
 ## Phase 6 — Integrate & hand over
 1. Project-file entries in all twins, command/ribbon/manifest registration (`.addin` / `PackageContents.xml`).
-2. Full build of every solution + all tests; fix only integration issues yourself.
+2. Full build of every solution + all tests (output to evidence file; skip if nothing changed since the Phase 4/5 run); fix only integration issues yourself.
 3. Bloat check: `git diff HEAD --stat`, duplicated helpers, unused members, 1:1 wrappers.
 4. Update `.harness/project-map.md` Reuse catalog with new/extended L0/L1/shared-Domain members.
 5. `F/qa-handover.md` from template: per-case table (writer format), step-by-step scripts for every B / Critical

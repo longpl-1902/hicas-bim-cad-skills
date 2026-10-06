@@ -1,0 +1,20 @@
+%% Chi tiết addin-story. Sửa file này rồi sinh lại ảnh theo docs/README.md.
+%%{init: {"flowchart": {"wrappingWidth": 460, "nodeSpacing": 30, "rankSpacing": 35, "htmlLabels": true}, "themeVariables": {"fontSize": "15px"}}}%%
+flowchart TB
+  classDef skill fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+  classDef gate fill:#ffedd5,stroke:#c2410c,color:#0f172a
+  classDef agent fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+
+  S0["Step 0 · dữ kiện dự án<br/>cache .harness/addin-story.json"]:::skill
+  S1["Phase 0-1 · ingest, lint,<br/>đối chiếu code, readiness"]:::skill
+  S2["Phase 2 · design.md + tasks.md<br/>evaluator kiểm thiết kế<br/>(sonnet nếu low risk, opus nếu medium/high)"]:::agent
+  SG{{"Gate · dev duyệt plan + nhánh<br/>bỏ qua khi low risk + auto"}}:::gate
+  S3["Phase 3 · interfaces T0<br/>build mọi solution"]:::skill
+  S4["Phase 4 · test-first<br/>implementer / wpf-ui<br/>(high/Critical: thêm test-writer riêng)"]:::agent
+  S5["Phase 5 · reviewer (medium/high)<br/>+ evaluator độc lập, mù vòng 1<br/>low/medium ≤ 3 task: chấm 1 lần cả story"]:::agent
+  S6["Phase 6 · tích hợp, bloat check<br/>qa-handover.md + nháp comment Redmine"]:::skill
+  DONE(["Giao QA · người xác nhận case B / Critical"]):::gate
+
+  S0 --> S1 --> S2 --> SG --> S3 --> S4 --> S5
+  S5 -- "FAIL (tối đa 3 lần, evaluator mới)" --> S4
+  S5 -- "PASS" --> S6 --> DONE

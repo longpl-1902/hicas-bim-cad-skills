@@ -1,6 +1,6 @@
 ---
 name: addin-batch
-description: Coordinator for several Redmine tickets in a Revit/AutoCAD add-in repo: groups them under their User Story, plans each (addin-story Phase 0–2), asks ONE batch gate, runs each approved US in its own git worktree/lane branch, drives the E/B test queue, merges lanes into one integration branch (<user>_<yyyyMMdd>) and prepares the MR text. Never writes protected branches, never pushes. Run only when the user explicitly invokes addin-batch.
+description: Coordinator for several Redmine tickets in a Revit/AutoCAD add-in repo: groups them under their User Story, plans each (addin-story Phase 0–2), asks ONE batch gate, runs each approved US in its own git worktree/lane branch, drives the E/B test queue, merges lanes into one integration branch (<user>_<yyyyMMdd>) and prepares the MR text. Never writes protected branches, never pushes. Run only when the user explicitly invokes addin-batch or approves the hand-off that redmine-us-writer-verified offers; never start it on your own.
 metadata:
   author: Hicas BIM/CAD
   version: "1.2.1"
@@ -112,24 +112,32 @@ Discover tracker/status/category ids with `GET /trackers.json`, `/issue_statuses
    → rewrite): produce the ticket .md by following the `redmine-us-writer-verified` skill
    (sibling skill folder: `<this skill dir>/../redmine-us-writer-verified/SKILL.md`), **except** its Bước 3 questions: collect them
    instead of asking.
-2. Parallelism: up to 4 `general-purpose` subagents at once, each given ≤ 3 tickets and this instruction:
+2. Parallelism: up to 4 `general-purpose` subagents at once, **model `sonnet`** (structured rewriting, no design
+   judgement), each given ≤ 3 tickets **of the same story** (they share context) and this instruction:
    "Follow <abs path to writer SKILL.md> for tickets <ids>. Do NOT ask the user; put every Bước-3 question in a
    section `## Câu hỏi mở` at the end of the file and mark dependent cases `Chờ người xác nhận`. Save to
-   <abs repo>/.harness/tickets/. Run the lint at the end. Return: file paths, lint exit codes, questions."
-   Story tickets go first; children may then read the story file for context.
+   <abs repo>/.harness/tickets/. Run the lint at the end. Return ONLY: file paths, lint exit codes, questions —
+   never the document text."
+   Story tickets go first; children may then read the story file for context. A story with 1–2 children and short
+   descriptions → a single subagent for the whole lane (the writer skill is read once, not per subagent).
 3. Merge every question into `questions.md` (numbered, each tagged with ticket id, options + default).
    Ask them in **one** round with AskUserQuestion (≤ 4 questions per call, repeat calls as needed; most important
    first). Apply answers to the affected ticket files (only the sections the answer changes), re-run lint.
    Unanswered → stays `[Giả định]` + `Chờ người xác nhận`.
 
 ### ③ Plan each lane + cross-lane check
+0. **Project map, once.** Before any planner starts: `.harness/project-map.md` missing → run
+   `hicas-bimcad:addin-scout` once in the main checkout; stale → refresh only if `git diff --stat <header commit> HEAD`
+   touches areas the lanes need. Planners and lane sessions then only **read** it (`new-worktree.ps1` copies it into
+   each worktree), so five lanes never pay for five scans or race on the same file.
 1. For each lane, one `general-purpose` subagent (model opus), up to 3 in parallel, prompt:
    "You are the addin-story team lead in **plan-only mode**. Read <abs path of this skill dir>/../addin-story/SKILL.md and run
    Step 0, Phase 0, Phase 1 and Phase 2 for lane <id> with tickets <story md + child mds> in repo <abs repo>.
    Ticket children (Implement/Task/Bug) become slices in tasks.md — keep their Redmine ids in the task titles,
    do not re-split them unless one is > ~400 lines. Do NOT ask the user: put questions in readiness.md as closed
-   questions. Do NOT write production code, build, or start implementers. Stop before the Gate.
-   Return: risk, task list, files touched per task (paths), UNKNOWNs, design eval verdict."
+   questions. Do NOT write production code, build, or start implementers. Do NOT refresh project-map.md. Stop before
+   the Gate. Return ≤ 15 lines: risk, task list, files touched per task (paths), UNKNOWNs, design eval verdict."
+   (The planner applies addin-story's risk rule: low-risk lanes get a sonnet design evaluator, no architect-reviewer.)
 2. Cross-lane check (you): from each `design.md`/`tasks.md` collect files touched. Two lanes **conflict** if they
    touch the same file outside `hotFiles`, the same `hotFiles` entry that is not purely additive, the same MCP tool,
    or are linked by Redmine `blocks`/`precedes`. Additive edits to csproj (`<Compile Include>`) only = soft

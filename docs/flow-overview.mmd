@@ -1,0 +1,30 @@
+%% Tổng quan luồng hicas-bimcad. Sửa file này rồi sinh lại ảnh theo docs/README.md.
+%%{init: {"flowchart": {"wrappingWidth": 460, "nodeSpacing": 30, "rankSpacing": 35, "htmlLabels": true}, "themeVariables": {"fontSize": "15px"}}}%%
+%% Màu: xanh = skill, cam = cổng người duyệt, tím = agent con, xám = hệ thống ngoài.
+flowchart TB
+  classDef skill fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+  classDef gate fill:#ffedd5,stroke:#c2410c,color:#0f172a
+  classDef agent fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+  classDef data fill:#f1f5f9,stroke:#64748b,color:#0f172a
+
+  RM[(Redmine<br/>MCP chỉ đọc)]:::data
+  W["<b>redmine-us-writer-verified</b><br/>ticket .md + Hợp đồng kiểm thử R→AC<br/>lint-story.mjs"]:::skill
+  G0{{"Dev duyệt ticket<br/>hỏi 1 lần"}}:::gate
+  ROUTE{"Số ticket?"}:::skill
+  RM --> W --> G0 --> ROUTE
+
+  B["<b>addin-batch</b><br/>gom ticket theo US thành lane<br/>quét project-map 1 lần · kế hoạch từng lane<br/>kiểm xung đột"]:::skill
+  BG{{"Gate batch<br/>duyệt từng lane"}}:::gate
+  WT["Mỗi lane = 1 git worktree<br/>nhánh lane cắt từ nhánh tích hợp"]:::skill
+  S["<b>addin-story</b><br/>chi tiết ở flow-story.png"]:::skill
+
+  ROUTE -- "1 ticket" --> S
+  ROUTE -- "≥ 2 ticket / con của US" --> B --> BG --> WT -- "resume" --> S
+
+  T["<b>Test cấp B / Critical</b><br/>b-auto-run (HicasTest) → b-desktop-test<br/>máy chỉ cho bằng chứng, không ghi Pass"]:::skill
+  TG{{"Người xác nhận<br/>case B / Critical"}}:::gate
+  S --> T --> TG
+
+  M["<b>addin-batch sync / finish</b><br/>merge --no-ff từng lane vào nhánh tích hợp<br/>gộp DEV · soạn mr-nhánh.md"]:::skill
+  MR{{"Người tự push + mở MR<br/>agent không push"}}:::gate
+  TG --> M --> MR

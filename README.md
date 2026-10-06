@@ -1,21 +1,18 @@
 # Hicas Skills
 
-Marketplace plugin Claude Code cho đội add-in **Revit / AutoCAD** (C#, .NET Framework 4.8).
+Bộ kỹ năng & quy trình tự động hóa cho đội add-in **Revit / AutoCAD** (C#, .NET Framework 4.8), hỗ trợ cả **Antigravity IDE** (Model Gemini) và **Claude Code**.
 Cấu trúc theo chuẩn [anthropics/skills](https://github.com/anthropics/skills) và
 [Agent Skills spec](https://agentskills.io/specification).
 
 ## Plugin `hicas-bimcad`
 
-Quy trình từ thu thập yêu cầu tới hiện thực hóa:
+Quy trình từ thu thập yêu cầu tới hiện thực hóa. Sau khi dev duyệt ticket, `redmine-us-writer-verified` tự chuyển tiếp:
+1 ticket → `addin-story`, từ 2 ticket (hoặc con của một US) → `addin-batch`.
 
-```
-Redmine ──► redmine-us-writer-verified ──► ticket .md (có Hợp đồng kiểm thử)
-                                               │
-        nhiều ticket ──► addin-batch ──► nhóm theo US ──► 1 worktree / US
-                                               │
-                         addin-story ◄─────────┘  (readiness → design → tasks →
-                                                    test-first → thẩm định độc lập → bàn giao QA)
-```
+![Tổng quan luồng](docs/flow-overview.png)
+
+Chi tiết các phase của `addin-story`: [`docs/flow-story.png`](docs/flow-story.png). Nguồn sơ đồ là file Mermaid
+(`docs/*.mmd`); cách sửa và sinh lại ảnh xem [`docs/README.md`](docs/README.md).
 
 | Skill | Làm gì | Gọi |
 |---|---|---|
@@ -57,6 +54,35 @@ Giao diện nằm ngoài phạm vi (add-in tự viết unit test view model). Qu
 
 ## Cài đặt
 
+### Cách 1: Sử dụng trong Antigravity IDE (Khuyên dùng với Model Gemini)
+
+Script [`setup-ag-ide.ps1`](setup-ag-ide.ps1) giúp tự động thiết lập toàn bộ môi trường `.agents/` (skills, rules kiểm thử Maker ≠ Checker, MCP config) và cấu trúc `.harness/` vào repository của dự án Add-in từ đường dẫn file `.sln`.
+
+1. **Yêu cầu**: Windows 10/11, PowerShell 5.1+ (hoặc Git Bash), `uv` (cho MCP Redmine), Git, MSBuild/Visual Studio 2022.
+2. **Cấu hình biến môi trường Redmine** (nếu dùng tính năng đọc ticket Redmine):
+   ```powershell
+   setx REDMINE_URL "https://redmine.<cong-ty>.vn"
+   setx REDMINE_API_KEY "<API key cá nhân: Redmine → My account → API access key>"
+   ```
+   *Lưu ý: Không commit API key. `REDMINE_READ_ONLY` mặc định là `1`.*
+3. **Chạy script cấu hình**:
+   ```powershell
+   # Trong PowerShell (Windows 10/11):
+   .\setup-ag-ide.ps1 -SlnPath "D:\Gits\MyAddin\MyAddin.sln"
+
+   # Hoặc từ Git Bash:
+   powershell -ExecutionPolicy Bypass -File ./setup-ag-ide.ps1 -SlnPath "D:/Gits/MyAddin/MyAddin.sln"
+   ```
+   *Script sẽ tự động kiểm tra công cụ Git và uvx trên máy. Nếu thiếu, script cung cấp menu chọn cài đặt theo cơ chế bitmask (`0`: Bỏ qua, `1`: Cài Git, `2`: Cài uvx, `3`: Cài cả Git + uvx).*
+   *Khi phát hiện `mcp_config.json` đã tồn tại, script hỗ trợ 3 tùy chọn: `0`: Giữ nguyên; `1`: Ghi đè mới; `2` (Mặc định): **Ghi đè thông minh** - tự động bổ sung server mới nhưng bảo lưu nguyên vẹn toàn bộ API key, URL và biến môi trường cũ đã điền.*
+   *Sau đó, script tự động tìm Git root của dự án, sao chép các kỹ năng vào `.agents/skills/`, tạo `.agents/rules/` và cấu hình `.harness/addin-story.json`.*
+4. **Mở và sử dụng trong Antigravity IDE**:
+   - Mở thư mục dự án Add-in bằng Antigravity IDE.
+   - Chọn Model: **Gemini 3.8 Flash** (cho tốc độ phản hồi nhanh) hoặc **Gemini Pro / Thinking** (để thực thi các playbook TDD khắt khe như `addin-story`).
+   - Gọi trực tiếp các skill như `addin-story` hoặc `addin-batch` trong hội thoại.
+
+### Cách 2: Sử dụng trong Claude Code
+
 1. Cần: Claude Code, `uv` (cho `uvx`), Node.js (lint ticket), Git, MSBuild/Visual Studio 2022 (build add-in).
 2. (Chỉ khi không dùng `harness-redmine`) thêm server từ `extras/redmine.mcp.json` và đặt biến môi trường người dùng (Windows):
    ```powershell
@@ -66,10 +92,23 @@ Giao diện nằm ngoài phạm vi (add-in tự viết unit test view model). Qu
    Không commit API key. `REDMINE_READ_ONLY` mặc định `1`; đặt `0` chỉ khi thật sự cần ghi lên Redmine.
 3. Trong Claude Code:
    ```
-   /plugin marketplace add D:\hicas-skills
+   /plugin marketplace add longpl-1902/hicas-bim-cad-skills
    /plugin install hicas-bimcad@hicas-skills
    ```
-   (hoặc trỏ tới repo git nội bộ khi đã đẩy lên).
+   Tên marketplace là `hicas-skills` (lấy từ `.claude-plugin/marketplace.json`, không phải tên repo).
+   Cập nhật bản mới: `/plugin marketplace update hicas-skills`.
+   Khi đang sửa skill trên máy, có thể trỏ marketplace vào thư mục clone thay cho GitHub:
+   `/plugin marketplace add <đường dẫn clone>`.
+
+## Chi phí token
+
+Luồng được chỉnh để không tốn token vô ích; chỉnh skill thì giữ các nguyên tắc sau:
+- Truyền đường dẫn, không dán nội dung; build/test ghi ra file, chỉ đọc exit code và dòng lỗi.
+- Số lớp kiểm tra theo rủi ro: low dùng evaluator `sonnet`, không có reviewer agent, chấm một lần cả story;
+  medium/high/`[Critical]` dùng `opus`, có reviewer, high chấm từng task.
+- Vòng 2 của evaluator và các lần sửa lỗi gửi tiếp cho agent đang giữ context (`SendMessage`), không spawn lại.
+- `addin-batch` quét project-map đúng một lần trước khi cắt worktree; subagent viết ticket dùng `sonnet`.
+- Writer không in lại cả tài liệu ra chat, chỉ in tóm tắt và đường dẫn.
 
 ## Nhánh và bảo vệ nhánh (addin-batch)
 
@@ -104,4 +143,4 @@ không commit): `tickets/`, `features/<ID>/`, `batch/`, `addin-story.json`, `add
 
 Theo [`spec/agent-skills-spec.md`](spec/agent-skills-spec.md), bắt đầu từ [`template/SKILL.md`](template/SKILL.md),
 thêm đường dẫn vào `skills` của plugin trong [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json),
-rồi chạy `claude plugin validate .`.
+rồi chạy `claude plugin validate .`. Đổi hành vi luồng thì cập nhật sơ đồ trong [`docs/`](docs/README.md) cùng PR.
