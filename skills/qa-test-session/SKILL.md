@@ -1,6 +1,6 @@
 ---
 name: qa-test-session
-description: QA asks in plain words to test a feature of a Revit/AutoCAD add-in ("test tạo keyplan trên Revit 2024, chụp ảnh từng bước"); Claude drives the host step by step through the HicasTest MCP server ('hicas-test', qa_session_* tools), takes a screenshot after every step, checks model values when asked, and returns a step-by-step report. Evidence only — QA decides Pass/Fail. Requires HicasTest (https://github.com/longpl-1902/hicas-bimcad-test-tool) installed and its MCP server registered as hicas-test.
+description: QA asks in plain words to test a feature of a Revit/AutoCAD add-in ("test tạo keyplan trên Revit 2024, chụp ảnh từng bước"); Claude drives the host step by step with the HicasTest MCP tools (qa_session_*), screenshots each step, can call the add-in's test entries, and returns a step report. Evidence only — QA decides Pass/Fail. Requires HicasTest (MCP server hicas-test).
 ---
 
 # qa-test-session
@@ -21,6 +21,8 @@ description: QA asks in plain words to test a feature of a Revit/AutoCAD add-in 
    - Click like a user (ribbon tab, button, dialog control): `qa_session_ui` with a `text` filter first, then
      `qa_session_click` with the exact name. Do not guess names.
    - Check values: `qa_session_query(category, parameters, unit)`.
+   - Feature logic through test entries (add-in test assembly given as `testAssembly` at start): `qa_session_list_entries`, then
+     `qa_session_call_entry(name, argument, answers)` — no UI, no screenshot; `.validate`/`.plan` entries show warnings without writing.
    - Extra evidence: `qa_session_screenshot(label)`; QA's remarks: `qa_session_note`.
 3. After every step, look at the returned screenshot path/summary and tell QA in one line what happened.
    If something is unexpected (error dialog, nothing changed), stop and ask before continuing.

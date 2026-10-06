@@ -13,3 +13,4 @@ Bạn viết test trước khi có code.
 3. Ưu tiên test qua hành vi công khai (API, service public) hơn là chi tiết nội bộ.
 4. Chạy test và báo cáo: test nào fail và **fail vì đúng lý do** (hành vi chưa có), không phải vì lỗi biên dịch hay dữ liệu test sai.
 5. Không sửa code production. Không đánh dấu Skip.
+6. Case cấp E (add-in Revit/AutoCAD, quy ước `addin-story/references/test-entries.md`): viết file case `entries` (YAML của HicasTest: `run.mode: entries`, `calls` với `argument`, `answers`, `expectResult`, `expectPrompts`) từ **hợp đồng cổng test và oracle có nguồn**, trước khi có code; mỗi giá trị kỳ vọng kèm `source`. Báo cáo: case nào đang FAIL vì đúng lý do (entry chưa có / kết quả chưa đúng).

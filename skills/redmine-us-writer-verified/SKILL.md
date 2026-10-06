@@ -75,7 +75,7 @@ Thêm một kiểm tra riêng cho kiểm thử: với mỗi yêu cầu, tự h�
 Nếu còn điểm loại 3, hỏi user trước khi hoàn thiện. Tài liệu này sẽ giao cho agent làm thật; điền bừa vào chỗ trống là rủi ro lớn nhất.
 
 - Gom thành một lượt hỏi, đánh số, mỗi câu ngắn và cụ thể; nếu dùng được công cụ hỏi có lựa chọn thì đưa phương án kèm đề xuất mặc định.
-- Chỉ hỏi những gì thực sự chặn việc viết: hành vi đúng mong đợi, phạm vi, bước tái hiện, **giá trị kỳ vọng cụ thể và nguồn của nó**, dữ liệu/file mẫu để test (với case cấp B: phiên bản Revit/AutoCAD cần test và model/DWG test cụ thể, để có thể chạy tự động bằng HicasTest), ai là người xác nhận các case cần môi trường thật. Không hỏi những chi tiết agent tự tìm được trong code.
+- Chỉ hỏi những gì thực sự chặn việc viết: hành vi đúng mong đợi, phạm vi, bước tái hiện, **giá trị kỳ vọng cụ thể và nguồn của nó**, dữ liệu/file mẫu để test (với case cấp E/B: phiên bản Revit/AutoCAD cần test và model/DWG test cụ thể, để chạy tự động bằng HicasTest), ai là người xác nhận các case cần môi trường thật. Không hỏi những chi tiết agent tự tìm được trong code.
 - Nếu ticket đã đủ, bỏ qua và nói rõ là ticket đã đủ thông tin.
 - Nếu không có người trả lời (chạy không giám sát): chọn hướng an toàn nhất, ghi vào Giả định, và đánh dấu mọi case phụ thuộc giả định đó là "Chờ người xác nhận".
 
@@ -249,6 +249,7 @@ Quy ước các cột:
 
 - **Loại**: Happy path, Biên, Lỗi/negative, Không hồi quy, Tái hiện lỗi gốc (chỉ cho Bug).
 - **Cấp A**: máy chạy được trong môi trường dev (build, unit test, kiểm tra tĩnh, chạy script). **Cấp B**: cần ứng dụng/dữ liệu/môi trường thật mà agent không có; chỉ người xác nhận được. Agent **không được** ghi Pass cho case cấp B; trạng thái tối đa là "Chờ xác nhận".
+- **Cấp E** (add-in Revit/AutoCAD): cần host thật nhưng **không cần người** — logic, luồng và cảnh báo của tính năng chạy được qua cổng test (HicasTest `call_entry`; quy ước ở `addin-story/references/test-entries.md`). Máy chạy và ghi bằng chứng; `MATCH/MISMATCH` của tool chỉ là bằng chứng, trạng thái tối đa vẫn là "Chờ xác nhận — có bằng chứng máy" cho tới khi người xác nhận. Case phải nhìn bằng mắt (bố cục, màu, vị trí trên bản vẽ) hoặc cần thao tác giao diện là cấp B.
 - **Đầu vào cụ thể**: giá trị thật (`email = ""`, `số lượng = 0`, tên file mẫu), không viết "dữ liệu hợp lệ".
 - **Kết quả đúng (kèm nguồn)**: giá trị kỳ vọng phải có nguồn *độc lập với code mới*: lấy từ ticket, từ dữ liệu mẫu, từ tính tay trong tài liệu, hoặc từ hành vi cũ đã được xác nhận. **Cấm** lấy giá trị kỳ vọng bằng cách chạy chính đoạn code đang được test rồi chép kết quả. Có đơn vị và dung sai khi là số thực.
 - **Bằng chứng bắt buộc**: dạng bằng chứng nào được chấp nhận (lệnh + exit code + output nguyên văn, tên test và số pass/fail/skip, hash commit, ảnh màn hình, bảng dump giá trị). "Đã kiểm tra, đạt" không kèm bằng chứng thì tính là chưa làm.
@@ -330,7 +331,7 @@ Trước khi giao, tự rà tài liệu theo checklist sau và sửa nếu có m
 
 - Mỗi R có ít nhất một case; mỗi case trỏ về R tồn tại (ma trận truy vết đầy đủ).
 - Mỗi case có đầu vào cụ thể, kết quả đúng có nguồn độc lập, kết quả sai, bằng chứng bắt buộc, người xác nhận khác người làm.
-- Mỗi case đã được phân cấp A hoặc B; case rủi ro cao gắn [Critical].
+- Mỗi case đã được phân cấp A, E hoặc B; case rủi ro cao gắn [Critical].
 - Bug có case tái hiện lỗi gốc và case không hồi quy.
 - Không còn từ mơ hồ không đo được ("nhanh", "hợp lý", "đúng", "ổn định") mà không kèm ngưỡng hoặc giá trị.
 - Mọi giả định đã gắn nhãn và đã liệt kê ở mục Giả định.
@@ -345,7 +346,7 @@ Nếu có điểm không thể đạt vì thiếu thông tin, ghi rõ thay vì l
    - Không ở trong git repo: lưu vào thư mục làm việc hiện tại.
    - Ghi file UTF-8 (không BOM), giữ nguyên dấu tiếng Việt, vì `lint-story.mjs` của addin-story đọc theo các nhãn tiếng Việt (`- Loại:`, `Hợp đồng kiểm thử`, cột `R`, `Cấp`, `Kết quả đúng`, `Bằng chứng bắt buộc`, `Xác nhận bởi`). Không đổi tên các nhãn/cột này.
 2. Trong chat, in bản hoàn chỉnh (hoặc nếu quá dài thì nói rõ file đã lưu và tóm tắt các mục chính).
-3. Cuối bản in, thêm một dòng ngắn: những điểm đã hỏi user, số giả định còn lại, **số case cấp A / cấp B / [Critical]**, và đường dẫn file đã lưu. Không viết thêm phần giải thích dài ngoài bản chính.
+3. Cuối bản in, thêm một dòng ngắn: những điểm đã hỏi user, số giả định còn lại, **số case cấp A / E / B / [Critical]**, và đường dẫn file đã lưu. Không viết thêm phần giải thích dài ngoài bản chính.
 4. Nếu repo là add-in Revit/AutoCAD và skill `addin-story` có sẵn (cùng plugin hicas-bimcad: thư mục `../addin-story/` cạnh skill này): tự chạy lint `node "<thư mục skill addin-story>/scripts/lint-story.mjs" <file.md>`. Exit 1 thì sửa tài liệu theo lỗi rồi lint lại (tối đa 2 lần); exit 0/2 thì báo kết quả. Sau đó đưa lệnh bàn giao để user tự chạy (addin-story không tự gọi được): `/hicas-bimcad:addin-story <đường dẫn file.md>`.
 5. Nhiều ticket: mỗi ticket một file .md riêng.
 6. Chỉ ghi ngược lên Redmine khi user yêu cầu rõ; khi đó cho user duyệt bản cuối trước khi đăng. Lưu ý MCP Redmine có thể đang ở chế độ chỉ đọc (`REDMINE_READ_ONLY=1`): nếu lệnh ghi bị từ chối thì báo user và đưa file .md để họ tự dán, không tìm cách vòng qua.

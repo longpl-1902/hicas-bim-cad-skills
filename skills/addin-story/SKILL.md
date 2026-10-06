@@ -85,10 +85,11 @@ files hasn't changed the facts). Otherwise determine and save:
   "build": ["msbuild X.sln /p:Configuration=Debug /m /v:m", "msbuild X_R2022.sln ..."],
   "test": "vstest.console ... | dotnet test ...", "testLimits": "e.g. XYZ not constructible outside host",
   "twinProjects": "rule: new .cs → both X.csproj and X_R2022.csproj",
-  "automationBridge": "hicas-test (HicasTest: list_hosts, run_test_case, qa_session_*) | e.g. MCP server '<your-addin-mcp>' (list_revit_instances, call_tool) | none",
+  "automationBridge": "hicas-test (HicasTest: list_hosts, run_test_case, list_entries, call_entry, qa_session_*) | e.g. MCP server '<your-addin-mcp>' (list_revit_instances, call_tool) | none",
   "testBuilds": { "2024": "src/X/bin/Debug/R2024/X.addin", "2026": "src/X/bin/Debug/R2026/X.addin" },
   "testFixtures": ["tests/fixtures/", "D:/TestModels/Hawee/", "\\\\server\\qa\\models\\basic.rvt"] | "none",
-  "desktopTest": "computer-use (Claude runs the B/Critical scripts on the desktop, skill b-desktop-test) | none",
+  "testEntries": { "2024": "src/X.Testing/bin/Debug/R2024/X.Testing.dll" } | "none",
+  "desktopTest": "none (parked: computer-use skill b-desktop-test runs only when the user asks)",
   "automationRule": "e.g. MCP-FEAT-001: new capability needs a tool | none",
   "baseBranch": "DEV", "highRiskPaths": ["**/*.csproj", "..."] }
 ```
@@ -133,7 +134,7 @@ files hasn't changed the facts). Otherwise determine and save:
    order preserved), level A/B per case, required evidence, verifier, `[Critical]` tags (data loss,
    wrong business numbers, irreversible model changes). All marked `[Bổ sung bởi lead]`; effective only after the Gate.
 4. Level assignment for CAD/BIM: **A** = runs without the host (pure logic, parsing, geometry on DTOs/doubles,
-   JSON/CSV, view-models with fakes). **B** = needs the host, a real model/DWG or visual judgement.
+   JSON/CSV, view-models with fakes). **E** = needs the host and a model but no person: logic, flow and warnings of a model-changing feature, run through test entries ([references/test-entries.md](references/test-entries.md)). **B** = needs a person: visual judgement, UI interaction, real customer data.
    Prefer designs that move logic out of host calls so cases become A.
 5. Closed questions only for code conflicts or missing business basis: ≤ 5, each with options + default,
    via AskUserQuestion. None → `verdict: ready`.
@@ -148,9 +149,15 @@ files hasn't changed the facts). Otherwise determine and save:
    Map the layers onto the **existing** project structure (from the map); do not invent new projects.
    Reuse/extend before new; no 1:1 wrappers, no speculative abstractions, interfaces only at L3↔L1.
    Fill §6 Host API and §7 automation surface (mandatory when `automationRule` exists).
+   **Test-entry convention** (read [references/test-entries.md](references/test-entries.md) for every feature that
+   changes the model): split the feature into small steps `Validate → Plan → Apply` behind one use case; warnings
+   and confirmations go through `IUserPrompt` with stable ids and never open a window; the command is a thin
+   adapter. §7 lists the main entry, the step entries, the prompt ids and the contract file path.
 2. `F/tasks.md` from `assets/templates/tasks.md`: **vertical slices** (each = an observable behaviour, ≤ ~400 changed
    lines), each owning disjoint files, listing its cases and the tests to write first. Traceability table must
-   contain every R and every non-blank case — a missing one is an error, not a note.
+   contain every R and every non-blank case — a missing one is an error, not a note. A task that changes the model
+   also owns its test entries (main + step gates) and the contract file under the test assembly /
+   `docs/specs/test-entries/`; the entries are written in the same task, not afterwards.
 3. Risk: **high** if any `[Critical]` case, bulk modify/delete of existing model elements, shared config or
    deliverable overwrite, new/changed automation WRITE tool, threading/event/updater code, installer/registration,
    a `highRiskPaths` match, or > 3 tasks. **medium** if host writes limited to new elements or new UI. Else **low**.
@@ -170,12 +177,17 @@ eval verdict, branch proposal. Ask with AskUserQuestion: **Duyệt** / **Sửa (
 ## Phase 3 — Interfaces (T0)
 Write shared interfaces/DTOs/enums yourself (reuse first, XML doc). Add every new file to **all** twin project
 files. Run every build command from Step 0. Must pass before Phase 4.
+If `testEntries` is set and the repo has no test assembly yet, T0 also creates it (`<Addin>.Testing`, all twin project files,
+one reference: `HicasTest.Contracts.dll` from the HicasTest package folder `contracts/`, no other packages), plus `IUserPrompt`,
+the request/result DTOs and the contract files of the story's model-changing features.
 
 ## Phase 4 — Test-first implementation (per task, in dependency order)
 1. **Tests first:** `hicas-bimcad:test-writer` (or `hicas-bimcad:addin-implementer` in test-only mode) writes the level-A tests of
    the task from `test-contract.md` oracles — never from running new code. Run them and save
    `evidence/T<n>/<case>-before.txt` (command, exit code, raw output). A test that passes now is wrong
    unless the case is a regression guard; say which.
+   E cases: the test-writer also writes the `entries` case `F/b-cases/<case>.yaml` (b-auto-run format) from the contract before
+   any code. It must fail now (entry missing or wrong result); keep its `run_test_case` report as `<case>-before`.
 2. **Implement:** default one `hicas-bimcad:addin-implementer` (sonnet). A team (max 3: `impl-core` owns all L0/L1, plus
    `impl-<slice>` / `hicas-bimcad:addin-wpf-ui`) only for ≥ 2 independent tasks with disjoint files. Spawn prompt:
    ```
@@ -188,6 +200,8 @@ files. Run every build command from Step 0. Must pass before Phase 4.
    ```
 3. After the implementer reports: re-run builds + tests **yourself**, save `<case>-after.txt`. Mismatch with the
    report → treat the report as wrong, log `MISMATCH`.
+   **E cases of the task:** build the lane's test assembly and run `b-auto-run` for them yourself (`repeat=1`; the final run in Phase 5.4 uses 2). A task is not
+   `ready-to-push` before its entries ran with MATCH; MISMATCH/ERROR goes back to the owner. Keep the report paths in `evidence/T<n>/`.
 4. Contract changes (interfaces) → you change, rebuild, notify affected teammates. Stuck → inspect files/build
    before nudging or reassigning.
 
@@ -205,13 +219,16 @@ files. Run every build command from Step 0. Must pass before Phase 4.
      the contract value · tests can fail (before-evidence plausible, or mutation reasoning, or baseline run in a
      temporary `git worktree` at HEAD when cheap) · edge cases handled or out of scope · matches design and project
      rules (version floor, threading, transactions, ids, twin projects, automation rule) · no sensor bypass
-     (skip/delete/weaken tests, swallowed exceptions, hard-coded expected values) · level-B/Critical not claimed Pass.
+     (skip/delete/weaken tests, swallowed exceptions, hard-coded expected values) · level-B/Critical not claimed Pass ·
+     test-entry convention ([references/test-entries.md](references/test-entries.md)) for model-changing features:
+     steps split, warnings only through `IUserPrompt` with ids, command thin, entry calls the same use case, contract
+     file matches the code.
    - **Round 2 (claims):** then give `mr-T<n>.md` + `evidence/T<n>/`; each claim → ĐÚNG / SAI / KHÔNG KIỂM ĐƯỢC.
    - Verdict rules: FAIL if any 0, or build/case-test/sensor-bypass < 2, or any SAI claim on a case;
      PASS-WITH-NOTES if any 1; PASS if all 2. Write `F/eval-T<n>-<k>.md` in the eval format of *File layout* (front-matter
      `verdict`, `human_agrees:` empty), log it.
    - FAIL → fix → **new** evaluator (max 3 rounds, then stop and report to the user). PASS → task `ready-to-push`.
-4. **Level-B machine evidence (optional, saves the user time):**
+4. **Machine evidence for E and B cases (E: required when `testEntries` is set; B: optional, saves the user time):**
    - `automationBridge` is `hicas-test` → run the `b-auto-run` skill for this story: YAML in `F/b-cases/`,
      evidence in `F/evidence/host/<year>/`, ledger `F/b-auto-ledger.csv`, one run per `deployVersions` year that
      is installed and has a `testBuilds` entry. The tool opens only test resources (Step 0), always on a copy.
@@ -231,9 +248,7 @@ files. Run every build command from Step 0. Must pass before Phase 4.
    Redmine comment **draft**. Knowledge worth keeping → propose a known-issue entry (text only).
    Fill each B script's optional "Tự động hoá" block (host years, fixture, command id, dialog answers) when known;
    for cases run by `b-auto-run`, put the report path(s) in the evidence column and keep the blind-first note.
-   `desktopTest` is `computer-use` and not in an addin-batch lane → after the full build + tests pass, run the
-   `b-desktop-test` skill for this story's B / Critical scripts (it asks the user once before taking the desktop).
-   In a lane, leave it to addin-batch (one desktop for all lanes).
+   `desktopTest` is parked: run `b-desktop-test` only when the user explicitly asks for it.
 6. Shut down teammates. Report in Vietnamese (≤ 15 lines): counts **A Pass / B chờ / Critical / Fail**, eval
    verdicts, files changed, what the user must do next, open risks. Inside an addin-batch lane
    (`.harness/lane.json` exists) do not commit: addin-batch `sync` commits on the lane branch and merges it into the
@@ -247,5 +262,5 @@ files. Run every build command from Step 0. Must pass before Phase 4.
 | 1 | Phase 1 (only if conflicts) | Answer ≤ 5 closed questions |
 | 2 | Gate (skipped for low risk with `auto`) | Approve plan + branch |
 | 3 | Phase 5 (only after 3 FAILs) | Decide: change design / ticket / accept |
-| 4 | Handover | Run level-B / Critical scripts (blind, before reading machine reports), then ask for commit. With `desktopTest: computer-use`: allow Claude to take the desktop once, then confirm its evidence (visual items, [Critical]) |
+| 4 | Handover | Run level-B / Critical scripts (blind, before reading machine reports), then ask for commit. |
 Everything else (lint, scan, design check, test-first, build/test, review, evaluation, handover docs) is automatic.

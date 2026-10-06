@@ -22,9 +22,9 @@ Redmine ──► redmine-us-writer-verified ──► ticket .md (có Hợp đ�
 | [`redmine-us-writer-verified`](skills/redmine-us-writer-verified/SKILL.md) | Đọc ticket qua MCP Redmine, viết `.md` cho dev agent kèm ma trận R→AC, oracle có nguồn, bằng chứng, người xác nhận | Tự kích hoạt khi nhắc ticket Redmine, hoặc `/hicas-bimcad:redmine-us-writer-verified <ID>` |
 | [`addin-batch`](skills/addin-batch/SKILL.md) | Điều phối nhiều ticket: gom Task/Implement/Bug theo US, lập kế hoạch, kiểm xung đột, 1 lượt duyệt, chạy mỗi US trong git worktree riêng, hàng đợi test level B và MR | `/hicas-bimcad:addin-batch plan` |
 | [`addin-story`](skills/addin-story/SKILL.md) | Team-lead playbook cho 1 ticket/US: test-first, maker ≠ checker, evaluator độc lập | `/hicas-bimcad:addin-story <file.md> [auto\|resume]` |
-| [`b-auto-run`](skills/b-auto-run/SKILL.md) | Chạy tự động các case cấp B trong Revit/AutoCAD thật bằng HicasTest, trên mọi năm deploy đã cài; gắn báo cáo máy vào `qa-handover.md`, ghi ledger. Không bao giờ ghi Pass | Từ addin-story Phase 5.4 / addin-batch khi `automationBridge` = `hicas-test`, hoặc `/hicas-bimcad:b-auto-run` |
+| [`b-auto-run`](skills/b-auto-run/SKILL.md) | Chạy tự động các case cấp **E** (logic/luồng/cảnh báo, qua cổng test) và cấp B (qua lệnh ribbon) trong Revit/AutoCAD thật bằng HicasTest, trên mọi năm deploy đã cài; gắn báo cáo máy vào `qa-handover.md`, ghi ledger. Không bao giờ ghi Pass | Từ addin-story Phase 5.4 / addin-batch khi `automationBridge` = `hicas-test`, hoặc `/hicas-bimcad:b-auto-run` |
 | [`qa-test-session`](skills/qa-test-session/SKILL.md) | QA mô tả bằng lời, Claude điều khiển Revit/AutoCAD từng bước, chụp ảnh mỗi bước, xuất báo cáo | Tự kích hoạt khi QA nhờ test một tính năng, hoặc `/hicas-bimcad:qa-test-session` |
-| [`b-desktop-test`](skills/b-desktop-test/SKILL.md) | Sau khi story code + unit test xong, Claude **tự lấy quyền điều khiển máy** (computer-use) chạy các kịch bản test tay B / Critical trong `qa-handover.md` trên bản copy fixture, chụp ảnh từng bước, ghi bằng chứng. Chỉ điều khiển Revit/AutoCAD, dừng ở màn đăng nhập/license/hộp thoại lạ, không bao giờ ghi Pass | Từ addin-story Phase 6 / addin-batch `finish` khi `desktopTest` = `computer-use`, hoặc `/hicas-bimcad:b-desktop-test` |
+| [`b-desktop-test`](skills/b-desktop-test/SKILL.md) | **Tạm dừng** (từ 1.4.0). Claude lấy quyền điều khiển máy (computer-use) chạy kịch bản test tay trên bản copy fixture. Vướng quyền, chiếm máy, không chạy song song được; chỉ dùng khi người dùng yêu cầu rõ cho việc phải nhìn trên màn hình | `/hicas-bimcad:b-desktop-test` khi được yêu cầu |
 
 Subagent đi kèm (`hicas-bimcad:<tên>`): `addin-scout`, `addin-implementer`, `addin-helper-writer`,
 `addin-wpf-ui`, `addin-reviewer`, `explorer`, `test-writer`, `architect-reviewer`, `evaluator`.
@@ -37,6 +37,23 @@ MCP cho test tự động (tuỳ chọn): `b-auto-run` và `qa-test-session` c�
 [`extras/hicas-test.mcp.json`](extras/hicas-test.mcp.json). Trong repo add-in, đặt `automationBridge: "hicas-test"`,
 `testBuilds`, `testFixtures` (một hoặc nhiều thư mục/file, ổ bất kỳ hoặc ổ mạng; hoặc chỉ định file khi chạy) trong `.harness/addin-story.json`. Kết quả của tool chỉ là bằng chứng máy — case cấp B
 vẫn cần người xác nhận.
+
+## Quy ước cổng test (test entries) và cấp E — từ 1.5.0
+
+Logic, cảnh báo và luồng của một tính năng được test bằng agent trong host không ai thao tác, qua MCP `hicas-test`
+(`list_entries` / `call_entry`, chạy case `run.mode: entries`; thiết kế ở `docs/test-entries.md` của repo HicasTest, đã chạy thật trên Revit 2024 với `samples/SampleEntries`, **chưa pilot trên add-in thật**).
+Giao diện nằm ngoài phạm vi (add-in tự viết unit test view model). Quy ước chi tiết:
+[`skills/addin-story/references/test-entries.md`](skills/addin-story/references/test-entries.md). Tóm tắt:
+
+- Tách tính năng thành các method nhỏ: `Validate` → `Plan` → `Apply`, use case `Execute` ghép chúng.
+- Cảnh báo/xác nhận trong luồng chính đi qua `IUserPrompt` (id cố định, mức, lựa chọn, mặc định), không bao giờ mở cửa sổ;
+  test ghi lại mọi prompt và trả lời theo kịch bản (nhánh "tiếp tục" và "huỷ" là hai case riêng).
+- **Cổng chính** `feature.action` gọi cả use case (cùng thứ lệnh ribbon gọi); **cổng phụ** `.validate` / `.plan` (chỉ đọc) / `.apply`
+  cho agent xem cảnh báo và kế hoạch mà không ghi model. Cả hai nằm trong assembly test (`<Addin>.Testing.dll`), không phát hành.
+- Lệnh ribbon chỉ là lớp mỏng: dựng request, gọi cùng use case; mỗi tính năng có file hợp đồng `docs/specs/test-entries/*.yaml`.
+- **Cấp E** trong hợp đồng kiểm thử (cạnh A và B): cần host nhưng không cần người, chạy bằng cổng test. Kết quả `MATCH` vẫn chỉ là bằng chứng máy ("Chờ xác nhận — có bằng chứng máy"), không phải Pass. `lint-story.mjs` nhận cấp A/B/E.
+- Khi `.harness/addin-story.json` có khoá `testEntries` (năm → `X.Testing.dll`): T0 tạo assembly test; test-writer viết case `entries` trước khi có code; task chỉ `ready-to-push` khi các case E chạy MATCH (lead tự chạy `b-auto-run`); evaluator và reviewer kiểm tra quy ước. `desktopTest` đặt `none`.
+- Hiệu năng: một case = một lần mở Revit (~20–35 s) còn mỗi lần gọi cổng chỉ vài ms, nên gom các lần gọi của một tính năng vào **một** case; các lane chạy case E song song được (tối đa 3).
 
 ## Cài đặt
 

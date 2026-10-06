@@ -88,7 +88,7 @@ if (caseTable) {
     if (!id) continue;
     const kind = c('kind');
     const blank = /Bỏ trống|Không áp dụng/i.test(kind) || /^Không áp dụng/i.test(c('expected'));
-    const level = (/\b([AB])\b/.exec(c('level')) || [])[1] || null;
+    const level = (/\b([ABE])\b/.exec(c('level')) || [])[1] || null;
     const critical = /\[?Critical\]?/i.test(row.cells.join(' '));
     const rs = (c('r').match(/R\d+/g) || []);
     cases.push({ id, kind, level, critical, blank, r: rs, verifier: c('verifier'), line: row.line });
@@ -100,7 +100,7 @@ if (caseTable) {
     if (verified) {
       if (!rs.length) errors.push(`${id}: không trỏ về R nào.`);
       rs.filter(r => definedR.size && !definedR.has(r)).forEach(r => errors.push(`${id}: trỏ về ${r} không tồn tại.`));
-      if (!level) errors.push(`${id}: thiếu Cấp A/B.`);
+      if (!level) errors.push(`${id}: thiếu Cấp A/B/E.`);
       if (!c('evidence')) errors.push(`${id}: thiếu "Bằng chứng bắt buộc".`);
       if (!c('verifier')) errors.push(`${id}: thiếu "Xác nhận bởi".`);
       else if (SELF_VERIFY.test(c('verifier'))) errors.push(`${id}: người xác nhận là chính bên làm ("${c('verifier')}").`);
@@ -130,6 +130,7 @@ info.requirements = [...definedR].sort((a, b) => +a.slice(1) - +b.slice(1));
 info.cases = live.length;
 info.levelA = live.filter(x => x.level === 'A').length;
 info.levelB = live.filter(x => x.level === 'B').length;
+info.levelE = live.filter(x => x.level === 'E').length;
 info.unleveled = live.filter(x => !x.level).length;
 info.critical = live.filter(x => x.critical).length;
 info.assumptions = (text.match(/\[Giả định\]/g) || []).length;
@@ -140,7 +141,7 @@ if (asJson) {
   console.log(JSON.stringify({ file, status, info, errors, warnings, cases: live }, null, 2));
 } else {
   console.log(`File: ${file}\nStatus: ${status} | format=${info.format} | type=${info.type} | id=${info.id}`);
-  console.log(`R: ${info.requirements.join(', ') || '-'} | cases=${info.cases} (A=${info.levelA}, B=${info.levelB}, chưa phân cấp=${info.unleveled}, Critical=${info.critical}) | [Giả định]=${info.assumptions}`);
+  console.log(`R: ${info.requirements.join(', ') || '-'} | cases=${info.cases} (A=${info.levelA}, E=${info.levelE}, B=${info.levelB}, chưa phân cấp=${info.unleveled}, Critical=${info.critical}) | [Giả định]=${info.assumptions}`);
   if (errors.length) console.log('\nLỖI (chặn):\n' + errors.map(e => ' - ' + e).join('\n'));
   if (warnings.length) console.log('\nCẢNH BÁO:\n' + warnings.map(e => ' - ' + e).join('\n'));
 }

@@ -44,6 +44,10 @@ inside an agent team. The team lead (Opus) designed the work; you implement your
 - Tests first when asked (test-only mode): write level-A tests, run them, save the raw output to
   `F/evidence/<T-id>/<case>-before.txt` (command line, exit code, full output). They must FAIL for the right
   reason; a Bug reproduction case that passes before the fix is a blocker → report it.
+- Model-changing feature: follow `addin-story/references/test-entries.md` — small steps (`Validate` / `Plan` / `Apply`), warnings and
+  questions only through `IUserPrompt` (stable ids, never a window), the command is a thin adapter, and the test entries
+  (main + step gates) in the test assembly call the same use case with no business logic of their own. You own the entry
+  and contract files listed in your task.
 - Every test asserts a concrete value (with unit/tolerance for doubles). "Does not throw" / "not null" alone is not
   a check. Never skip/ignore/delete tests, loosen thresholds, mock the unit under test, or edit expected values.
 - Adding cases is fine (mark `[Bổ sung]`); changing/removing one = "Đề xuất thay đổi test" in your report.

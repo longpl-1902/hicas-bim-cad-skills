@@ -1,6 +1,6 @@
 ---
 name: b-desktop-test
-description: After addin-story (or addin-batch finish) has built and unit-tested a story, Claude itself performs the level-B / Critical manual test scripts of qa-handover.md in real Revit/AutoCAD by taking control of the desktop (computer-use) — clicks the ribbon, fills dialogs, picks in the view, types at prompts — on a copy of a test fixture, with a screenshot per step, and writes evidence into qa-handover.md. Evidence only, never Pass. Use when addin-story.json has desktopTest = "computer-use", or the user asks Claude to do the manual B tests. Needs the computer-use MCP and HicasTest (MCP server hicas-test).
+description: PARKED. Claude takes control of the desktop (computer-use) to run manual B scripts in Revit/AutoCAD. Use only when the user explicitly asks for desktop control; the default is test entries through b-auto-run.
 compatibility: Windows dev or test machine with Revit/AutoCAD licensed and signed in; Claude Code with the computer-use MCP; HicasTest MCP server 'hicas-test' (qa_session_* tools).
 allowed-tools: Read Grep Glob Edit Write mcp__hicas-test__list_hosts mcp__hicas-test__qa_session_start mcp__hicas-test__qa_session_screenshot mcp__hicas-test__qa_session_note mcp__hicas-test__qa_session_query mcp__hicas-test__qa_session_end mcp__hicas-test__qa_session_list mcp__computer-use__*
 metadata:
@@ -10,6 +10,10 @@ metadata:
 ---
 
 # b-desktop-test — Claude runs the manual B scripts on the desktop
+
+> **Parked.** Desktop control needs per-app permission, occupies the one desktop and cannot run lanes in parallel.
+> Logic, warnings and flows are tested through test entries (HicasTest `call_entry`); the UI is covered by the add-in's
+> own unit tests. Use this skill only when the user asks for it for something that must be seen on screen.
 
 The human step of addin-story ("run the level-B / Critical scripts") done by Claude through computer-use.
 HicasTest gives the safe frame (host started on a **copy** of the fixture with the build under test, labelled

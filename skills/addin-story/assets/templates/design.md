@@ -51,6 +51,14 @@ sequenceDiagram
 | Version lock (API cấm dùng) | |
 | Idempotent khi chạy lại (không tạo trùng) | |
 
+## 7a. Cổng test (quy ước test-entries — xem references/test-entries.md)
+| Cổng | Tên | Gọi | ReadOnly | Prompt id (mức, lựa chọn, mặc định) |
+|---|---|---|---|---|
+| Chính | `feature.action` | `Execute` | không | |
+| Phụ | `feature.action.validate` / `.plan` / `.apply` | từng bước | validate, plan: có | |
+- File hợp đồng: `docs/specs/test-entries/<feature.action>.yaml` · các bước tách: Validate / Plan / Apply, mỗi bước 1 việc.
+- Lệnh ribbon chỉ dựng request và gọi cùng use case: <đúng | ngoại lệ + lý do>.
+
 ## 7. Bề mặt tự động hoá (MCP / command / API)
 <Nếu dự án có rule "capability mới phải có tool" → tên tool, READ/WRITE, preview/dry-run, validation dùng chung với UI.
 Nếu không áp dụng → "N/A – <lý do>" + người phải duyệt theo rule dự án.>

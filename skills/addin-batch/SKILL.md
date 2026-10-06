@@ -1,6 +1,6 @@
 ---
 name: addin-batch
-description: Coordinator for several Redmine tickets at once in a Revit/AutoCAD add-in repo. Pulls the dev's open tickets from Redmine, groups Task/Implement/Bug under their User Story (or Change request/Enhancement), writes one ticket .md per ticket with redmine-us-writer-verified, plans each US (addin-story Phase 0–2), detects cross-story conflicts, asks ONE batch gate, then runs each approved US in its own sibling git worktree with addin-story on a lane branch cut from the batch's integration branch (<user>_<yyyyMMdd>), drives the level-B test queue, merges finished lanes into the integration branch, and prepares one MR description for the user. Never writes protected branches, never pushes. Run only when the user explicitly invokes addin-batch; never start it on your own.
+description: Coordinator for several Redmine tickets in a Revit/AutoCAD add-in repo: groups them under their User Story, plans each (addin-story Phase 0–2), asks ONE batch gate, runs each approved US in its own git worktree/lane branch, drives the E/B test queue, merges lanes into one integration branch (<user>_<yyyyMMdd>) and prepares the MR text. Never writes protected branches, never pushes. Run only when the user explicitly invokes addin-batch.
 metadata:
   author: Hicas BIM/CAD
   version: "1.2.1"
@@ -173,17 +173,15 @@ Print one table: `Lane | state | task tiến độ | eval | B chờ | drift | vi
 A lane whose `qa-handover.md` exists → state `b-test`, append it to `b-queue.md`.
 
 ## Level-B queue (`b-queue.md`)
-If `automationBridge` is `hicas-test`, first run `b-auto-run` for every lane in `b-test` state, one lane at a time
+If `automationBridge` is `hicas-test`, first run `b-auto-run` for every lane in `b-test` state (E cases need no desktop: up to 3 lanes in parallel, each its own host process
+on its own build)
 (each run uses a fresh host process with that lane's build, so lanes never share a host). Add a column `máy` to
 `b-queue.md` (`MATCH n / MISMATCH n / NOT-RUN n`) and move lanes with MISMATCH or ERROR to the front of the human
 queue. Machine results never close a case.
 
 Human confirmation of B / [Critical] cases happens **once, at the end of the batch, on the integration build**
 (`finish`), not lane by lane — fewer host restarts and the cases are checked on the code that will be merged.
-With `desktopTest: computer-use`, `finish` first runs `b-desktop-test` (one lane after another, lanes with
-MISMATCH first, each lane's cases in one host session; cross-lane and [Critical] cases once on the integration
-build), so the user confirms Claude's evidence instead of running every script by hand. Never in parallel: there
-is one desktop.
+The parked `b-desktop-test` (computer-use) runs at `finish` only when the user asks for it, one lane at a time.
 Without `hicas-test`, the queue only lists what the user will test at the end. If the user asks to test a lane
 earlier, tell them exactly: the worktree path, the DLL to load (`<worktree>/<project>/bin/Debug/…dll`, via Add-in
 Manager or the project's usual dev load method — never overwrite an installed product folder without asking), the

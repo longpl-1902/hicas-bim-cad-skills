@@ -24,6 +24,11 @@ Check, in this order:
      only L1 interfaces.
    - L0/L1 contain no feature/business names and never reference higher layers.
    - Commands/UI thin; no host API in ViewModels.
+   - Test-entry convention (`addin-story/references/test-entries.md`) for features that change the model:
+     the use case is split into small steps (`Validate` / `Plan` / `Apply`); warnings and confirmations only through
+     `IUserPrompt` with stable ids (grep for `MessageBox`, `TaskDialog`, `.ShowDialog`, `Editor.GetKeywords` in
+     Domain/Application = High); the command only builds the request and calls the same use case; every
+     `[HicasTestEntry]` calls the use case and holds no business logic; contract file matches the code.
 3. **Reuse & bloat** — grep for similar names/behaviour in L0/L1 and other features for each new helper
    (duplicates = High). Flag 1:1 wrappers, speculative abstractions, single-implementation interfaces
    outside L3↔L1, unused members, commented-out code, new dependencies. Suggest moving misplaced code.

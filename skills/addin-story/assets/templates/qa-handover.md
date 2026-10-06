@@ -16,6 +16,7 @@ updated: <YYYY-MM-DD>
 |---|---|---|---|---|---|
 > Trạng thái chỉ được là: Pass có bằng chứng · Fail · Chờ xác nhận · Chưa chạy được (lý do).
 > Cấp B và [Critical] không bao giờ là Pass khi chưa có người xác nhận.
+> Cấp E: máy đã chạy qua cổng test — ghi đường dẫn report vào cột bằng chứng; người chỉ xác nhận kết quả, không cần kịch bản tay.
 > Bằng chứng máy (HicasTest, nếu có): `MATCH / MISMATCH / NOT-RUN / ERROR` chỉ là bằng chứng, không phải Pass;
 > trạng thái tối đa là "Chờ xác nhận — có bằng chứng máy".
 > Trong giai đoạn đo độ chính xác: **chạy kịch bản tay trước**, ghi kết quả, rồi mới mở báo cáo máy;
