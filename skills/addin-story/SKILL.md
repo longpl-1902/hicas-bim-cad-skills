@@ -194,8 +194,8 @@ eval verdict, branch proposal. Ask with AskUserQuestion: **Duyệt** / **Sửa (
 Write shared interfaces/DTOs/enums yourself (reuse first, XML doc). Add every new file to **all** twin project
 files. Run every build command from Step 0. Must pass before Phase 4.
 If `testEntries` is set and the repo has no test assembly yet, T0 also creates it (`<Addin>.Testing`, all twin project files,
-one reference: `HicasTest.Contracts.dll` = `testContracts`, found in `contracts/` of the HicasTest install folder (default
-%LOCALAPPDATA%/Programs/HicasTest), no other packages), built **into the same output folder as the add-in's own assemblies**
+one reference: `HicasTest.Contracts.dll` = `testContracts`, found in `contracts/` of the HicasTest install folder (the folder holding `mcp/` of the
+registered `hicas-test` command: `claude mcp get hicas-test`), no other packages), built **into the same output folder as the add-in's own assemblies**
 (HicasTest refuses to run entries when those assemblies are already loaded from another folder), plus `IUserPrompt`,
 the request/result DTOs and the contract files of the story's model-changing features.
 
